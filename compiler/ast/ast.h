@@ -11,6 +11,9 @@ typedef enum {
     AST_FN_DECL,
     AST_BLOCK,
     AST_IF_STMT,
+    AST_WHILE_STMT,
+    AST_FOR_STMT,
+    AST_RETURN_STMT,
     AST_PRINT_STMT,
     AST_EXPR_STMT,
     AST_BINARY_EXPR,
@@ -54,6 +57,22 @@ typedef struct ASTNode {
             struct ASTNode* then_branch;
             struct ASTNode* else_branch;
         } if_stmt;
+        
+        struct {
+            struct ASTNode* condition;
+            struct ASTNode* body;
+        } while_stmt;
+        
+        struct {
+            struct ASTNode* initializer;
+            struct ASTNode* condition;
+            struct ASTNode* update;
+            struct ASTNode* body;
+        } for_stmt;
+        
+        struct {
+            struct ASTNode* value;
+        } return_stmt;
         
         struct {
             struct ASTNode* argument;
@@ -105,6 +124,9 @@ ASTNode* ast_var_decl_create(const char* name, ASTNode* initializer, int32_t lin
 ASTNode* ast_fn_decl_create(const char* name, char** params, size_t param_count, ASTNode* body, int32_t line, int32_t column);
 ASTNode* ast_block_create(ASTNode** statements, size_t count, int32_t line, int32_t column);
 ASTNode* ast_if_stmt_create(ASTNode* condition, ASTNode* then_branch, ASTNode* else_branch, int32_t line, int32_t column);
+ASTNode* ast_while_stmt_create(ASTNode* condition, ASTNode* body, int32_t line, int32_t column);
+ASTNode* ast_for_stmt_create(ASTNode* initializer, ASTNode* condition, ASTNode* update, ASTNode* body, int32_t line, int32_t column);
+ASTNode* ast_return_stmt_create(ASTNode* value, int32_t line, int32_t column);
 ASTNode* ast_print_stmt_create(ASTNode* argument, int32_t line, int32_t column);
 ASTNode* ast_expr_stmt_create(ASTNode* expression, int32_t line, int32_t column);
 ASTNode* ast_binary_expr_create(TokenType operator, ASTNode* left, ASTNode* right, int32_t line, int32_t column);

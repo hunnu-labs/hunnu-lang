@@ -8,6 +8,8 @@ struct Interpreter {
     Value* values;
     size_t capacity;
     size_t count;
+    Value return_value;
+    int has_return;
 };
 
 static Value* interpreter_lookup(Interpreter* interp, const char* name) {
@@ -20,6 +22,20 @@ static Value* interpreter_lookup(Interpreter* interp, const char* name) {
 }
 
 static void interpreter_define(Interpreter* interp, const char* name, Value value) {
+    Value* existing = interpreter_lookup(interp, name);
+    if (existing) {
+        if (existing->type == VALUE_STRING) {
+            free(existing->value.string_value);
+        }
+        existing->type = value.type;
+        if (value.type == VALUE_STRING) {
+            existing->value.string_value = strdup(value.value.string_value);
+        } else {
+            existing->value = value.value;
+        }
+        return;
+    }
+    
     if (interp->count >= interp->capacity) {
         interp->capacity *= 2;
         interp->names = (char**)realloc(interp->names, sizeof(char*) * interp->capacity);
@@ -42,7 +58,21 @@ Interpreter* interpreter_new(void) {
     interp->count = 0;
     interp->names = (char**)malloc(sizeof(char*) * interp->capacity);
     interp->values = (Value*)malloc(sizeof(Value) * interp->capacity);
+    interp->has_return = 0;
     return interp;
+}
+
+void interpreter_set_return(Interpreter* interp, Value value) {
+    interp->return_value = value;
+    interp->has_return = 1;
+}
+
+Value interpreter_get_return(Interpreter* interp) {
+    return interp->return_value;
+}
+
+void interpreter_clear_return(Interpreter* interp) {
+    interp->has_return = 0;
 }
 
 void interpreter_free(Interpreter* interp) {
@@ -62,6 +92,7 @@ Value value_create_int(int64_t val) {
     Value v;
     v.type = VALUE_INT;
     v.value.int_value = val;
+    v.has_value = 1;
     return v;
 }
 
@@ -69,6 +100,7 @@ Value value_create_string(char* val) {
     Value v;
     v.type = VALUE_STRING;
     v.value.string_value = strdup(val);
+    v.has_value = 1;
     return v;
 }
 
@@ -76,12 +108,14 @@ Value value_create_bool(int val) {
     Value v;
     v.type = VALUE_BOOL;
     v.value.bool_value = val;
+    v.has_value = 1;
     return v;
 }
 
 Value value_create_none(void) {
     Value v;
     v.type = VALUE_NONE;
+    v.has_value = 0;
     return v;
 }
 
@@ -115,7 +149,7 @@ void value_print(Value* value) {
 }
 
 int value_as_bool(Value* value) {
-    if (!value) return 0;
+    if (!value || !value->has_value) return 0;
     switch (value->type) {
         case VALUE_BOOL:
             return value->value.bool_value;
@@ -249,6 +283,12 @@ Value interpreter_evaluate(Interpreter* interp, ASTNode* node) {
             return value_create_none();
         }
         
+        case AST_ASSIGN: {
+            Value value = interpreter_evaluate(interp, node->data.assign.value);
+            interpreter_define(interp, node->data.assign.name, value);
+            return value;
+        }
+        
         default:
             return value_create_none();
     }
@@ -309,6 +349,59 @@ static void interpreter_execute_statement(Interpreter* interp, ASTNode* node) {
         case AST_EXPR_STMT: {
             Value result = interpreter_evaluate(interp, node->data.expr_stmt.expression);
             value_free(&result);
+            break;
+        }
+        
+        case AST_WHILE_STMT: {
+            while (1) {
+                Value condition = interpreter_evaluate(interp, node->data.while_stmt.condition);
+                if (!value_as_bool(&condition)) {
+                    value_free(&condition);
+                    break;
+                }
+                value_free(&condition);
+                interpreter_execute_statement(interp, node->data.while_stmt.body);
+                if (interp->has_return) break;
+            }
+            break;
+        }
+        
+        case AST_FOR_STMT: {
+            if (node->data.for_stmt.initializer) {
+                interpreter_execute_statement(interp, node->data.for_stmt.initializer);
+            }
+            while (1) {
+                if (node->data.for_stmt.condition) {
+                    Value condition = interpreter_evaluate(interp, node->data.for_stmt.condition);
+                    if (!value_as_bool(&condition)) {
+                        value_free(&condition);
+                        break;
+                    }
+                    value_free(&condition);
+                }
+                interpreter_execute_statement(interp, node->data.for_stmt.body);
+                if (interp->has_return) break;
+                if (node->data.for_stmt.update) {
+                    interpreter_evaluate(interp, node->data.for_stmt.update);
+                }
+            }
+            break;
+        }
+        
+        case AST_RETURN_STMT: {
+            Value return_value;
+            if (node->data.return_stmt.value) {
+                return_value = interpreter_evaluate(interp, node->data.return_stmt.value);
+            } else {
+                return_value = value_create_none();
+            }
+            interpreter_set_return(interp, return_value);
+            break;
+        }
+        
+        case AST_ASSIGN: {
+            Value value = interpreter_evaluate(interp, node->data.assign.value);
+            interpreter_define(interp, node->data.assign.name, value);
             break;
         }
         

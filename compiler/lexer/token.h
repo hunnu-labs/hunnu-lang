@@ -17,6 +17,9 @@ typedef enum {
     TOKEN_TRUE,
     TOKEN_FALSE,
     TOKEN_PRINT,
+    TOKEN_WHILE,
+    TOKEN_FOR,
+    TOKEN_RETURN,
     
     TOKEN_LPAREN,
     TOKEN_RPAREN,

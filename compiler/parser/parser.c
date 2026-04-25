@@ -24,6 +24,10 @@ void parser_free(Parser* parser) {
     free(parser);
 }
 
+static ASTNode* parser_parse_while_statement(Parser* parser);
+static ASTNode* parser_parse_for_statement(Parser* parser);
+static ASTNode* parser_parse_return_statement(Parser* parser);
+
 static void parser_error(Parser* parser, const char* message) {
     if (parser->had_error) return;
     parser->had_error = 1;
@@ -43,6 +47,12 @@ static int parser_check(Parser* parser, TokenType type) {
     return parser->current->type == type;
 }
 
+static void parser_skip_newlines(Parser* parser) {
+    while (parser_check(parser, TOKEN_NEWLINE)) {
+        parser_advance(parser);
+    }
+}
+
 static int parser_match(Parser* parser, TokenType type) {
     if (!parser_check(parser, type)) return 0;
     parser_advance(parser);
@@ -53,6 +63,8 @@ static void parser_consume(Parser* parser, TokenType type, const char* message) 
     if (parser_match(parser, type)) return;
     parser_error(parser, message);
 }
+
+static ASTNode* parser_parse_assignment(Parser* parser);
 
 ASTNode* parse(Lexer* lexer) {
     Parser* parser = parser_new(lexer);
@@ -83,6 +95,8 @@ ASTNode* parser_parse_program(Parser* parser) {
 }
 
 ASTNode* parser_parse_declaration(Parser* parser) {
+    parser_skip_newlines(parser);
+    
     if (parser_match(parser, TOKEN_LET)) {
         if (!parser_check(parser, TOKEN_IDENT)) {
             parser_error(parser, "Expected variable name after 'let'");
@@ -95,6 +109,10 @@ ASTNode* parser_parse_declaration(Parser* parser) {
         parser_consume(parser, TOKEN_ASSIGN, "Expected '=' after variable name");
         
         ASTNode* value = parser_parse_expression(parser);
+        
+        if (parser_check(parser, TOKEN_SEMICOLON)) {
+            parser_advance(parser);
+        }
         
         return ast_var_decl_create(name, value, 
                               parser->previous->line, 
@@ -147,8 +165,22 @@ ASTNode* parser_parse_declaration(Parser* parser) {
 }
 
 ASTNode* parser_parse_statement(Parser* parser) {
+    parser_skip_newlines(parser);
+    
     if (parser_match(parser, TOKEN_IF)) {
         return parser_parse_if_statement(parser);
+    }
+    
+    if (parser_match(parser, TOKEN_WHILE)) {
+        return parser_parse_while_statement(parser);
+    }
+    
+    if (parser_match(parser, TOKEN_FOR)) {
+        return parser_parse_for_statement(parser);
+    }
+    
+    if (parser_match(parser, TOKEN_RETURN)) {
+        return parser_parse_return_statement(parser);
     }
     
     if (parser_match(parser, TOKEN_PRINT)) {
@@ -208,20 +240,101 @@ ASTNode* parser_parse_print_statement(Parser* parser) {
     ASTNode* argument = parser_parse_expression(parser);
     parser_consume(parser, TOKEN_RPAREN, "Expected ')' after argument");
     
+    if (parser_check(parser, TOKEN_SEMICOLON)) {
+        parser_advance(parser);
+    }
+    
     return ast_print_stmt_create(argument,
                              parser->previous->line,
                              parser->previous->column);
 }
 
+ASTNode* parser_parse_while_statement(Parser* parser) {
+    parser_consume(parser, TOKEN_LPAREN, "Expected '(' after 'while'");
+    ASTNode* condition = parser_parse_expression(parser);
+    parser_consume(parser, TOKEN_RPAREN, "Expected ')' after condition");
+    
+    ASTNode* body = parser_parse_statement(parser);
+    
+    return ast_while_stmt_create(condition, body,
+                                parser->previous->line,
+                                parser->previous->column);
+}
+
+ASTNode* parser_parse_for_statement(Parser* parser) {
+    int has_parens = parser_match(parser, TOKEN_LPAREN);
+    
+    ASTNode* initializer = NULL;
+    if (!parser_check(parser, TOKEN_SEMICOLON)) {
+        initializer = parser_parse_declaration(parser);
+        if (initializer && parser_check(parser, TOKEN_SEMICOLON)) {
+            parser_advance(parser);
+        }
+    } else {
+        parser_consume(parser, TOKEN_SEMICOLON, "Expected ';'");
+    }
+    
+    ASTNode* condition = NULL;
+    if (!parser_check(parser, TOKEN_SEMICOLON)) {
+        condition = parser_parse_expression(parser);
+    }
+    parser_consume(parser, TOKEN_SEMICOLON, "Expected ';' after loop condition");
+    
+    ASTNode* update = NULL;
+    if (!parser_check(parser, has_parens ? TOKEN_RPAREN : TOKEN_LBRACE)) {
+        update = parser_parse_expression(parser);
+    }
+    
+    if (has_parens) {
+        parser_consume(parser, TOKEN_RPAREN, "Expected ')' after for clauses");
+    }
+    
+    ASTNode* body = parser_parse_statement(parser);
+    
+    return ast_for_stmt_create(initializer, condition, update, body,
+                               parser->previous->line,
+                               parser->previous->column);
+}
+
+ASTNode* parser_parse_return_statement(Parser* parser) {
+    ASTNode* value = NULL;
+    if (!parser_check(parser, TOKEN_RBRACE) && !parser_check(parser, TOKEN_EOF)) {
+        value = parser_parse_expression(parser);
+    }
+    
+    return ast_return_stmt_create(value,
+                                  parser->previous->line,
+                                  parser->previous->column);
+}
+
 ASTNode* parser_parse_expression_statement(Parser* parser) {
     ASTNode* expr = parser_parse_expression(parser);
+    
+    if (parser_check(parser, TOKEN_SEMICOLON)) {
+        parser_advance(parser);
+    }
+    
     return ast_expr_stmt_create(expr,
                                parser->previous->line,
                                parser->previous->column);
 }
 
 ASTNode* parser_parse_expression(Parser* parser) {
-    return parser_parse_equality(parser);
+    return parser_parse_assignment(parser);
+}
+
+ASTNode* parser_parse_assignment(Parser* parser) {
+    ASTNode* left = parser_parse_equality(parser);
+    
+    if (parser_match(parser, TOKEN_ASSIGN)) {
+        if (left->type == AST_IDENTIFIER) {
+            char* name = strdup(left->data.identifier.name);
+            ASTNode* value = parser_parse_assignment(parser);
+            return ast_assign_create(name, value, left->line, left->column);
+        }
+    }
+    
+    return left;
 }
 
 ASTNode* parser_parse_equality(Parser* parser) {

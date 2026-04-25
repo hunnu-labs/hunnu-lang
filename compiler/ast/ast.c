@@ -9,6 +9,9 @@ static const char* ast_type_names[] = {
     "FN_DECL",
     "BLOCK",
     "IF_STMT",
+    "WHILE_STMT",
+    "FOR_STMT",
+    "RETURN_STMT",
     "PRINT_STMT",
     "EXPR_STMT",
     "BINARY_EXPR",
@@ -82,6 +85,37 @@ ASTNode* ast_if_stmt_create(ASTNode* condition, ASTNode* then_branch, ASTNode* e
     node->data.if_stmt.condition = condition;
     node->data.if_stmt.then_branch = then_branch;
     node->data.if_stmt.else_branch = else_branch;
+    return node;
+}
+
+ASTNode* ast_while_stmt_create(ASTNode* condition, ASTNode* body, int32_t line, int32_t column) {
+    ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
+    node->type = AST_WHILE_STMT;
+    node->line = line;
+    node->column = column;
+    node->data.while_stmt.condition = condition;
+    node->data.while_stmt.body = body;
+    return node;
+}
+
+ASTNode* ast_for_stmt_create(ASTNode* initializer, ASTNode* condition, ASTNode* update, ASTNode* body, int32_t line, int32_t column) {
+    ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
+    node->type = AST_FOR_STMT;
+    node->line = line;
+    node->column = column;
+    node->data.for_stmt.initializer = initializer;
+    node->data.for_stmt.condition = condition;
+    node->data.for_stmt.update = update;
+    node->data.for_stmt.body = body;
+    return node;
+}
+
+ASTNode* ast_return_stmt_create(ASTNode* value, int32_t line, int32_t column) {
+    ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
+    node->type = AST_RETURN_STMT;
+    node->line = line;
+    node->column = column;
+    node->data.return_stmt.value = value;
     return node;
 }
 

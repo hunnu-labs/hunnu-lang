@@ -21,6 +21,9 @@ static const char* keyword_names[] = {
     "true",
     "false",
     "print",
+    "while",
+    "for",
+    "return",
     NULL
 };
 
@@ -32,6 +35,9 @@ static TokenType keyword_types[] = {
     TOKEN_TRUE,
     TOKEN_FALSE,
     TOKEN_PRINT,
+    TOKEN_WHILE,
+    TOKEN_FOR,
+    TOKEN_RETURN,
     TOKEN_UNKNOWN
 };
 

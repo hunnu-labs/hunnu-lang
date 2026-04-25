@@ -21,7 +21,12 @@ typedef struct Value {
         char* string_value;
         int bool_value;
     } value;
+    int has_value;
 } Value;
+
+void interpreter_set_return(Interpreter* interp, Value value);
+Value interpreter_get_return(Interpreter* interp);
+void interpreter_clear_return(Interpreter* interp);
 
 Value interpreter_evaluate(Interpreter* interp, ASTNode* node);
 void value_free(Value* value);

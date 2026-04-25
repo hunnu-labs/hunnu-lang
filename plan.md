@@ -1,8 +1,8 @@
-# Hunnu 2-Hour Stream Plan: Loops & Functions with Return
+# Hunnu 2-Hour Stream Plan: Arrays & Strings
 
 ## Stream Overview
 
-- **Topic:** Adding `while`, `for` loops, and `return` statements to Hunnu
+- **Topic:** Adding arrays and string operations to Hunnu
 - **Duration:** 2 hours
 - **Audience:** Beginner-friendly
 
@@ -18,30 +18,46 @@
 
 ---
 
-## Hour 1: While & For Loops (55 min)
+## Current Language State (Completed)
+
+The following features are now working:
+- Variables with `let`
+- Print statements
+- Arithmetic: `+`, `-`, `*`, `/`
+- Comparison: `>`, `<`, `>=`, `<=`
+- If/else statements
+- **While loops**: `while(condition) { body }`
+- **For loops**: `for(init; condition; update) { body }`
+- **Return statements**: `return expression`
+- Variable reassignment: `x = new_value`
+
+---
+
+## Hour 1: Arrays (55 min)
 
 | Time | Segment | Content |
 |------|---------|---------|
-| 0:00-0:05 | Intro | Welcome, show current Hunnu demo |
-| 0:05-0:15 | Concept | Draw flowcharts: while vs for loops |
-| 0:15-0:25 | Code | **Add `TOKEN_WHILE`** in `token.h` |
-| 0:25-0:35 | Code | **Add `TOKEN_FOR`** in `token.h` + lexer |
-| 0:35-0:45 | Code | **Add AST nodes** - `AST_WHILE_STMT`, `AST_FOR_STMT` |
-| 0:45-0:55 | Demo | Live demo `while` loop |
+| 0:00-0:05 | Intro | Welcome, demo current features |
+| 0:05-0:15 | Concept | Draw arrays: contiguous memory, index concept |
+| 0:15-0:25 | Code | **Add array token** - TOKEN_LBRACKET, TOKEN_RBRACKET |
+| 0:25-0:35 | Code | **Add array AST node** - AST_ARRAY_EXPR, AST_INDEX_EXPR |
+| 0:35-0:45 | Code | **Parser** - array literals, indexing |
+| 0:45-0:55 | Demo | Live demo array creation and access |
 
 **Break: 5 min**
 
 ---
 
-## Hour 2: For Loops & Return (55 min)
+## Hour 2: Strings (55 min)
 
 | Time | Segment | Content |
 |------|---------|---------|
-| 1:00-1:15 | Code | **Parser for `for` loops** - init/condition/update |
-| 1:15-1:30 | Code | **Interpreter for both loops** |
-| 1:30-1:45 | Concept | "Why return matters" - whiteboard explanation |
-| 1:45-1:55 | Code | **Add `return` statement** - parser + interpreter |
-| 1:55-2:00 | Demo | Full demo with both loops + return |
+| 1:00-1:15 | Code | **Interpreter** - array indexing execution |
+| 1:15-1:25 | Concept | Strings as character arrays |
+| 1:25-1:35 | Code | **String length** - `len(s)` function |
+| 1:35-1:45 | Code | **String concatenation** - `s + t` |
+| 1:45-1:55 | Demo | Combined demo - arrays + strings |
+| 1:55-2:00 | Wrap | Summary, Q&A |
 
 ---
 
@@ -49,74 +65,73 @@
 
 | File | Changes |
 |------|---------|
-| `compiler/lexer/token.h` | Add `TOKEN_WHILE`, `TOKEN_FOR`, `TOKEN_RETURN` |
-| `compiler/lexer/lexer.c` | Handle `"while"`, `"for"`, `"return"` keywords |
-| `compiler/parser/parser.c` | Parse while, for, return statements |
-| `compiler/ast/ast.h` | Add `AST_WHILE_STMT`, `AST_FOR_STMT`, `AST_RETURN` |
-| `compiler/interpreter/interpreter.c` | Execute loops & return values |
-| `examples/main.hn` | Demo with all features |
+| `compiler/lexer/token.h` | Add `TOKEN_LBRACKET`, `TOKEN_RBRACKET`, `TOKEN_COMMA` |
+| `compiler/lexer/lexer.c` | Handle `[`, `]`, `,` tokens |
+| `compiler/parser/parser.c` | Parse array literals, indexing, string concat |
+| `compiler/ast/ast.h` | Add `AST_ARRAY_EXPR`, `AST_INDEX_EXPR`, `AST_STRING_CONCAT` |
+| `compiler/interpreter/interpreter.c` | Array access, string operations |
+| `examples/main.hn` | Demo with arrays and strings |
 
 ---
 
 ## Syntax Examples
 
-### While Loop
+### Array Creation
 ```hunnu
-let x = 5
-while x > 0 {
-    print(x)
-    x = x - 1
+let numbers = [1, 2, 3, 4, 5]
+print(numbers[0])  // 1
+print(numbers[4])  // 5
+```
+
+### Array with Loop
+```hunnu
+let arr = [1, 2, 3, 4, 5]
+let i = 0
+while i < 5 {
+    print(arr[i])
+    i = i + 1
 }
 ```
 
-### For Loop
+### String Concatenation
 ```hunnu
-for let i = 0; i < 5; i = i + 1 {
-    print(i)
-}
+let greeting = "Hello, "
+let name = "World"
+let message = greeting + name
+print(message)  // Hello, World
 ```
 
-### Functions with Return
+### String Length
 ```hunnu
-fn countdown(n) {
-    while n > 0 {
-        print(n)
-        n = n - 1
-    }
-    return n
-}
-
-fn main() {
-    let result = countdown(5)
-    print(result)
-}
+let s = "Hunnu"
+let length = len(s)
+print(length)  // 4
 ```
 
 ### Final Demo Program
 ```hunnu
-fn countdown(n) {
-    while n > 0 {
-        print(n)
-        n = n - 1
+fn print_array(arr, size) {
+    let i = 0
+    while i < size {
+        print(arr[i])
+        i = i + 1
     }
-    return n
-}
-
-fn sum_range(start, end) {
-    let total = 0
-    for let i = start; i <= end; i = i + 1 {
-        total = total + i
-    }
-    return total
 }
 
 fn main() {
-    print("Countdown:")
-    let remaining = countdown(5)
+    let numbers = [10, 20, 30, 40, 50]
+    print("Array elements:")
+    print_array(numbers, 5)
     
-    print("Sum of 1 to 10:")
-    let s = sum_range(1, 10)
-    print(s)
+    let first = numbers[0]
+    let last = numbers[4]
+    print("First + Last:")
+    print(first + last)
+    
+    let name = "Hunnu"
+    let message = "Language: " + name
+    print(message)
+    print(len(message))
 }
 ```
 
@@ -124,64 +139,46 @@ fn main() {
 
 ## Teaching Points
 
-### Why Loops?
-- Computers are good at repetition
-- `while` = "keep going while condition is true"
-- `for` = "start here, count up/down to there"
+### Why Arrays?
+- Store multiple values in one variable
+- Access by index (0-based)
+- Useful with loops for iteration
 
-### Why Return?
-- Functions can give back a result
-- The `return` keyword sends a value back
-- Without return, functions just do actions
+### Why Strings?
+- Text handling is essential
+- Strings are sequences of characters
+- Useful for user input/output
 
 ### Beginner-Friendly Diagrams
 
 ```
-WHILE LOOP:
-┌──────┐
-│condition│
-└──┬───┘
+ARRAY:
+┌─────┬─────┬─────┬─────┬─────┐
+│ [0] │ [1] │ [2] │ [3] │ [4] │
+│  10 │  20 │  30 │  40 │  50 │
+└─────┴─────┴─────┴─────┴─────┘
    │
    ▼
-┌──────┐
-│ body  │
-└──┬───┘
-   │
-   └──► back to condition
+numbers[2] = 30
 ```
 
 ```
-FOR LOOP:
-┌──────────┐
-│ init (i=0)│
-└────┬─────┘
-     │
-┌────▼─────┐
-│condition │────No──► exit
-│ i < 5    │
-└────┬─────┘
-     │ Yes
-     ▼
-┌──────┐
-│ body  │
-└────┬───┘
-     │
-┌────▼─────┐
-│ update   │
-│ i = i + 1│
-└────┬─────┘
-     │
-     └──► back to condition
+STRING:
+┌───┬───┬───┬───┬───┐
+│ H │ u │ n │ n │ u │
+└───┴───┴───┴───┴───┘
+[0] [1] [2] [3] [4]
 ```
 
 ---
 
 ## Next Stream Preview
 
-- Arrays and indexing: `arr[0]`, `arr[1]`
-- String operations: `len(s)`, `s + t`
 - Break and continue statements
 - Input/output basics
+- Multi-dimensional arrays
+- String slicing
+- Function parameters by reference
 
 ---
 
