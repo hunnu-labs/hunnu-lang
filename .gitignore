@@ -1,0 +1,17 @@
+# Build artifacts
+build/*
+!build/.gitkeep
+
+# Editor files
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.code-workspace

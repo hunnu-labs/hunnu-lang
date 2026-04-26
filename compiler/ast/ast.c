@@ -11,6 +11,8 @@ static const char* ast_type_names[] = {
     "IF_STMT",
     "WHILE_STMT",
     "FOR_STMT",
+    "BREAK_STMT",
+    "CONTINUE_STMT",
     "RETURN_STMT",
     "PRINT_STMT",
     "EXPR_STMT",
@@ -113,6 +115,22 @@ ASTNode* ast_for_stmt_create(ASTNode* initializer, ASTNode* condition, ASTNode* 
     return node;
 }
 
+ASTNode* ast_break_stmt_create(int32_t line, int32_t column) {
+    ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
+    node->type = AST_BREAK_STMT;
+    node->line = line;
+    node->column = column;
+    return node;
+}
+
+ASTNode* ast_continue_stmt_create(int32_t line, int32_t column) {
+    ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
+    node->type = AST_CONTINUE_STMT;
+    node->line = line;
+    node->column = column;
+    return node;
+}
+
 ASTNode* ast_return_stmt_create(ASTNode* value, int32_t line, int32_t column) {
     ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
     node->type = AST_RETURN_STMT;
@@ -168,6 +186,16 @@ ASTNode* ast_literal_create_int(int64_t value, int32_t line, int32_t column) {
     node->column = column;
     node->data.literal.literal_type = TOKEN_INT_LITERAL;
     node->data.literal.value.int_value = value;
+    return node;
+}
+
+ASTNode* ast_literal_create_float(double value, int32_t line, int32_t column) {
+    ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
+    node->type = AST_LITERAL;
+    node->line = line;
+    node->column = column;
+    node->data.literal.literal_type = TOKEN_FLOAT_LITERAL;
+    node->data.literal.value.float_value = value;
     return node;
 }
 

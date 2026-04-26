@@ -7,6 +7,7 @@ typedef enum {
     TOKEN_EOF = 0,
     TOKEN_IDENT,
     TOKEN_INT_LITERAL,
+    TOKEN_FLOAT_LITERAL,
     TOKEN_STRING_LITERAL,
     TOKEN_BOOL_LITERAL,
     
@@ -20,6 +21,10 @@ typedef enum {
     TOKEN_WHILE,
     TOKEN_FOR,
     TOKEN_RETURN,
+    TOKEN_BREAK,
+    TOKEN_CONTINUE,
+    TOKEN_NULL,
+    TOKEN_NIL_KEYWORD,
     
     TOKEN_LPAREN,
     TOKEN_RPAREN,
@@ -41,6 +46,10 @@ typedef enum {
     
     TOKEN_EQ,
     TOKEN_NEQ,
+    TOKEN_PLUS_ASSIGN,
+    TOKEN_MINUS_ASSIGN,
+    TOKEN_STAR_ASSIGN,
+    TOKEN_SLASH_ASSIGN,
     TOKEN_LT,
     TOKEN_LE,
     TOKEN_GT,
@@ -62,6 +71,7 @@ typedef struct {
     int32_t column;
     union {
         int64_t int_value;
+        double float_value;
         char* string_value;
         int bool_value;
     } value;

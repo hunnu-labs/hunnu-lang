@@ -1,150 +1,228 @@
-# Hunnu 2-Hour Stream Plan: Break/Continue & More Features
+# Hunnu Language — Development Plan
 
-## Stream Overview
-
-- **Topic:** Continue fixing arrays, add break/continue, I/O basics
-- **Duration:** 2 hours
-- **Audience:** Beginner-friendly
+> A living document tracking the state, priorities, and vision for Hunnu.
 
 ---
 
-## Pre-Stream Checklist
+## Current Language State
 
-- [ ] Hunnu project open in editor
-- [ ] Example file `main.hn` ready to demo
-- [ ] Build verified (`cd build && make`)
-- [ ] Whiteboard/diagram ready for concepts
-- [ ] Terminal open, running `./build/hunnu run examples/main.hn`
-
----
-
-## Current Language State (Completed)
-
-The following features are now working:
-- Variables with `let`
-- Print statements
-- Arithmetic: `+`, `-`, `*`, `/`
-- Comparison: `>`, `<`, `>=`, `<=`
-- If/else statements
-- **While loops**: `while(condition) { body }`
-- **For loops**: `for(init; condition; update) { body }`
-- **Return statements**: `return expression`
+### Working Features
+- Variables: `let x = 5`
+- Arithmetic: `+`, `-`, `*`, `/`, `%`
+- Comparison: `>`, `<`, `>=`, `<=`, `==`, `!=`
+- Boolean: `and`, `or`, `not`
+- If/else statements with `else if` chains
+- While loops: `while(condition) { body }`
+- For loops: `for(init; condition; update) { body }`
+- Functions: `fn name(param) { body }`
+- Return statements: `return expression`
+- Print: `print(value)`
 - Variable reassignment: `x = new_value`
-- **Arrays** (syntax): `[1, 2, 3]` with indexing `arr[i]`
-- **String concat**: `"Hello" + "World"`
-- **len()** function: for strings and arrays
+- Compound assignment: `x += 1`, `x -= 2`, `x *= 3`, `x /= 4`
+- Arrays: `[1, 2, 3]` + indexing `arr[i]`
+- String concatenation: `"Hello" + "World"`
+- String escapes: `\n`, `\t`, `\\`, `\"`
+- `len()` built-in function
+- First-class function calls (by name)
+- **Scoped variables** — block-scoped with scope stack
+- **break/continue** — loop control flow
+- Proper variable scoping in blocks and functions
+- **Floating-point numbers**: `3.14159`, `2.0`
+- **null/nil literal**: `let x = null` or `let y = nil`
+
+### Missing / Broken
+- (All Phase 1 items completed!)
 
 ---
 
-## Bug Fixes (Priority)
+## Priority Roadmap
 
-### 1. Array Index Bug 🔴
-**Problem**: Index out of bounds error on valid indices (0-4 for 5 elements)
-**Location**: `interpreter.c` - AST_INDEX_EXPR case
+### Phase 1: Foundation Fixes ✅
 
-### 2. String Memory Bugs 🔴
-**Problem**: Double-free or corruption when using strings with variables
-**Root Cause**: Complex value copying and ownership in interpreter
+| Priority | Item | Files | Status |
+|----------|------|-------|--------|
+| 🔴 | Variable scoping (scope stack) | interpreter.c | ✅ DONE |
+| 🔴 | break/continue execution | interpreter.c, token.h, parser.c | ✅ DONE |
+| 🔴 | Array index bounds checking | interpreter.c | ✅ DONE |
+| 🔴 | String memory safety (dangling pointers) | parser.c, interpreter.c | ✅ DONE |
 
----
+### Phase 2: Core Language Features ✅
 
-## Hour 1: Bug Fixes (55 min)
+| Priority | Item | Files | Status |
+|----------|------|-------|--------|
+| 🟡 | Compound assignment: `+=`, `-=`, etc | parser.c | ✅ DONE |
+| 🟡 | `else if` chains | parser.c | ✅ DONE |
+| 🟡 | Floating-point numbers | lexer.c, token.h, interpreter.c | ✅ DONE |
+| 🟡 | `null`/`nil` literal | lexer.c, token.h, ast.h | ✅ DONE |
+| 🟢 | String escapes: `\n`, `\t`, `\\` | lexer.c | ✅ DONE |
+| 🟢 | Multi-line strings | lexer.c | ⚠️ SKIPPED (strings already work across lines) |
 
-| Time | Segment | Content |
-|------|---------|---------|
-| 0:00-0:10 | Debug | Fix array indexing bug |
-| 0:10-0:25 | Debug | Fix string memory issues |
-| 0:25-0:40 | Test | Verify arrays and strings work |
-| 0:40-0:55 | Demo | Live demo with arrays + strings |
+### Phase 3: Standard Library & Dev Experience
 
-**Break: 5 min**
+| Priority | Item | Files | Status |
+|----------|------|-------|--------|
+| 🟡 | `input()` — read stdin | interpreter.c | TODO |
+| 🟡 | `str()`, `int()` conversions | interpreter.c | TODO |
+| 🟢 | `--debug` / `--ast` CLI flag | cli.c | TODO |
+| 🟢 | Runtime errors with line numbers | interpreter.c | TODO |
+| 🟢 | Parser error recovery | parser.c | TODO |
 
----
+### Phase 4: Advanced Features
 
-## Hour 2: New Features (55 min)
-
-| Time | Segment | Content |
-|------|---------|---------|
-| 1:00-1:15 | Code | **Break/Continue** - loop control |
-| 1:15-1:30 | Code | **Input basics** - read user input |
-| 1:30-1:40 | Concept | Multi-dimensional arrays |
-| 1:40-1:50 | Code | String slicing basics |
-| 1:50-1:55 | Demo | Combined demo |
-| 1:55-2:00 | Wrap | Summary, Q&A |
-
----
-
-## Files to Modify
-
-| File | Changes |
-|------|---------|
-| `compiler/interpreter/interpreter.c` | Fix array indexing, string memory |
-| `compiler/lexer/token.h` | Add `TOKEN_BREAK`, `TOKEN_CONTINUE` |
-| `compiler/parser/parser.c` | Parse break/continue |
-| `compiler/interpreter/interpreter.c` | Execute break/continue |
-| `examples/main.hn` | Demo with new features |
+| Priority | Item | Status |
+|----------|------|--------|
+| 🔵 | Bytecode compiler + VM | TODO |
+| 🔵 | Modules / import system | TODO |
+| 🔵 | Structs / records | TODO |
+| 🔵 | Pattern matching | TODO |
+| 🔵 | Algebraic Data Types (ADTs) | TODO |
 
 ---
 
-## Syntax Examples
+## Long-Term Vision
 
-### Break/Continue
+These are aspirational features that define Hunnu's future direction.
+
+### Self-Hosting (Bootstrap)
+A language should be able to implement itself. Once Hunnu is mature:
+- Rewrite compiler/interpreter in Hunnu
+- Create trusted bootchain
+- Enable metaprogramming and macros
+
+### Polish Notation (Prefix Syntax)
+Alternative syntax mode for metaprogramming:
+
 ```hunnu
-let i = 0
-while i < 10 {
-    i = i + 1
-    if i == 5 {
-        break  // exits loop
-    }
-    if i == 3 {
-        continue  // skip to next iteration
-    }
-    print(i)
-}
++ 5 3                    # 5 + 3
+* + 2 3 4                # (2 + 3) * 4
+if > x 0 { + x 1 }       # if x > 0 { x + 1 }
 ```
 
-### Final Demo Program (After Fixes)
+Benefits:
+- No operator precedence ambiguity
+- Uniform syntax = simpler parser
+- Code is data (homoiconic)
+- Opens door to Lisp-style macros
+
+### Functional Programming Features
+Inspired by Elixir, Lean, and Haskell:
+
 ```hunnu
-fn print_array(arr, size) {
-    let i = 0
-    while i < size {
-        print(arr[i])
-        i = i + 1
-    }
+# Pattern matching
+match x {
+    [] -> "empty"
+    [head, ...rest] -> "head: " + str(head)
 }
 
-fn main() {
-    let numbers = [10, 20, 30, 40, 50]
-    print("Array elements:")
-    print_array(numbers, 5)
-    
-    let first = numbers[0]
-    let last = numbers[4]
-    print("First + Last:")
-    print(first + last)
-    
-    let name = "Hunnu"
-    let message = "Language: " + name
-    print(message)
-    print(len(message))
+# Pipe operator
+x |> double |> add(5) |> str
+
+# Guards
+fib(n) where n > 1 -> fib(n-1) + fib(n-2)
+
+# Lazy evaluation
+let lazy_val = lazy expensive_compute()
+```
+
+### Flexible Type System
+Balance compile-time safety with runtime flexibility:
+
+```hunnu
+# Gradual typing (optional annotations)
+let x = 5              # inferred as int
+let y: int = 5         # explicitly typed
+
+# Structural types
+let point = { x: 5, y: 10 }  # inferred as { x: int, y: int }
+
+# Protocols/Traits
+protocol Printable {
+    fn format(self) -> string
 }
+
+# ADTs (sum types)
+type Maybe[T] = Just(T) | Nothing
+type List[T] = Cons(T, List[T]) | Nil
+
+# Dependent types (stretch goal)
+type Vec[T, n: int] = ...  # vector of length n
+```
+
+### Error Handling Model
+Move toward explicit, pattern-matching-based errors:
+
+```hunnu
+# Result types
+let result = parse_int("42")
+match result {
+    Ok(n) -> n * 2
+    Err(e) -> handle_error(e)
+}
+
+# Supervision trees for fault-tolerant systems
 ```
 
 ---
 
-## Next Stream Preview
+## Implementation Order
 
-- Function parameters by reference
-- Structs/records
-- Type system basics
-- Error handling
-- Modules/imports
+```
+Phase 1 (Foundation)      Phase 2 (Core)         Phase 3 (Lib/DX)        Phase 4 (Advanced)
+─────────────────────      ──────────────         ────────────────        ──────────────────
+┌─────────────────┐        ┌─────────────┐        ┌───────────────┐        ┌─────────────┐
+│ Scoped envs     │        │ += -= *= /= │        │ input()       │        │ Bytecode VM │
+│ break/continue  │──────▶│ else if     │───────▶│ str/int()     │───────▶│ Modules     │
+│ Array bounds    │        │ Float nums  │        │ CLI debug flag│        │ Structs     │
+│ String memory   │        │ null/nil    │        │ Line errors   │        │ Pattern mat │
+└─────────────────┘        │ String esc  │        └───────────────┘        │ ADTs        │
+                           └─────────────┘                                   └─────────────┘
+                                                                                    │
+                                                                                    ▼
+                              Self-hosting ◀────────────── Polish notation ◀───────┤
+                                                                                    │
+                              Flexible types ◀────────────── Functional features ◀──┘
+```
+
+---
+
+## Files Map
+
+| Component | Files | Purpose |
+|-----------|-------|---------|
+| Lexer | `compiler/lexer/lexer.c`, `compiler/lexer/token.h` | Tokenization |
+| Parser | `compiler/parser/parser.c`, `compiler/parser/parser.h` | AST construction |
+| AST | `compiler/ast/ast.h`, `compiler/ast/ast.c` | Node definitions |
+| Interpreter | `compiler/interpreter/interpreter.c` | Execution |
+| CLI | `compiler/cli/cli.c` | Command-line interface |
 
 ---
 
 ## Notes
 
-- Explain each step before coding
-- Show errors and how to fix them
-- Take it slow for beginners
-- Q&A breaks after each segment
+- Build: `cd build && make && ./hunnu run examples/main.hn`
+- Always test after changes
+- Run valgrind on memory-related issues: `valgrind --leak-check=full ./hunnu run test.hn`
+- Check for existing tokens before adding new ones (`token.h`)
+
+## Phase 1 Fixes Summary
+
+### Variable Scoping (Scope Stack)
+Replaced flat global namespace with a scope chain:
+- `Scope` struct with parent pointer for chain traversal
+- `scope_lookup()` searches up the chain (variable shadowing works)
+- `scope_define()` only defines in current scope (new `let` shadows outer)
+- Block bodies use current scope (no new scope for while/for loops)
+- Block statements create new scope (for `let` declarations inside `{}`)
+
+### break/continue
+- Added `AST_BREAK_STMT` and `AST_CONTINUE_STMT` AST node types
+- Parser handles `break` and `continue` keywords
+- Interpreter uses `has_break` and `has_continue` flags
+- While/for loops check flags after body execution
+- `continue` clears flag and re-evaluates condition
+- `break` exits the loop entirely
+
+### Memory Fixes
+- **Parser dangling pointer**: `ast_call_expr_create()` for `len()` was receiving address of local variable — fixed by allocating args array on heap
+- **value_copy for strings**: Deep copies string to prevent double-free
+- **value_free for arrays**: Only frees array_elements pointer, not individual elements (shallow ownership)

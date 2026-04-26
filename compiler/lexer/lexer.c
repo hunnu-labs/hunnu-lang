@@ -24,6 +24,10 @@ static const char* keyword_names[] = {
     "while",
     "for",
     "return",
+    "break",
+    "continue",
+    "null",
+    "nil",
     NULL
 };
 
@@ -38,6 +42,10 @@ static TokenType keyword_types[] = {
     TOKEN_WHILE,
     TOKEN_FOR,
     TOKEN_RETURN,
+    TOKEN_BREAK,
+    TOKEN_CONTINUE,
+    TOKEN_NULL,
+    TOKEN_NIL_KEYWORD,
     TOKEN_UNKNOWN
 };
 
@@ -153,20 +161,34 @@ Token* lexer_read_number(Lexer* lexer) {
         lexer_advance(lexer);
     }
     
+    int is_float = 0;
+    if (lexer_peek(lexer) == '.') {
+        is_float = 1;
+        lexer_advance(lexer);
+        while (isdigit(lexer_peek(lexer))) {
+            lexer_advance(lexer);
+        }
+    }
+    
     size_t len = lexer->current - start_pos;
     char* lexeme = (char*)malloc(len + 1);
     strncpy(lexeme, lexer->source + start_pos, len);
     lexeme[len] = '\0';
     
-    Token* token = token_new(TOKEN_INT_LITERAL, lexeme, start_line, start_column);
-    token->value.int_value = atoi(lexeme);
-    
-    free(lexeme);
-    return token;
+    if (is_float) {
+        Token* token = token_new(TOKEN_FLOAT_LITERAL, lexeme, start_line, start_column);
+        token->value.float_value = atof(lexeme);
+        free(lexeme);
+        return token;
+    } else {
+        Token* token = token_new(TOKEN_INT_LITERAL, lexeme, start_line, start_column);
+        token->value.int_value = atoi(lexeme);
+        free(lexeme);
+        return token;
+    }
 }
 
 Token* lexer_read_string(Lexer* lexer) {
-    size_t start_pos = lexer->current;
     int32_t start_line = lexer->line;
     int32_t start_column = lexer->column;
     
@@ -177,26 +199,67 @@ Token* lexer_read_string(Lexer* lexer) {
     
     lexer_advance(lexer);
     
-    size_t content_start = lexer->current;
+    size_t capacity = 64;
+    size_t length = 0;
+    char* value = (char*)malloc(capacity);
     
     while (!lexer_is_at_end(lexer) && lexer_peek(lexer) != '"') {
-        if (lexer_peek(lexer) == '\n') {
-            lexer->line++;
-            lexer->column = 1;
+        char c = lexer_peek(lexer);
+        
+        if (c == '\\') {
+            lexer_advance(lexer);
+            char next = lexer_peek(lexer);
+            if (next == 'n') {
+                if (length + 1 >= capacity) {
+                    capacity *= 2;
+                    value = (char*)realloc(value, capacity);
+                }
+                value[length++] = '\n';
+                lexer_advance(lexer);
+            } else if (next == 't') {
+                if (length + 1 >= capacity) {
+                    capacity *= 2;
+                    value = (char*)realloc(value, capacity);
+                }
+                value[length++] = '\t';
+                lexer_advance(lexer);
+            } else if (next == '\\') {
+                if (length + 1 >= capacity) {
+                    capacity *= 2;
+                    value = (char*)realloc(value, capacity);
+                }
+                value[length++] = '\\';
+                lexer_advance(lexer);
+            } else if (next == '"') {
+                if (length + 1 >= capacity) {
+                    capacity *= 2;
+                    value = (char*)realloc(value, capacity);
+                }
+                value[length++] = '"';
+                lexer_advance(lexer);
+            } else {
+                if (length + 1 >= capacity) {
+                    capacity *= 2;
+                    value = (char*)realloc(value, capacity);
+                }
+                value[length++] = '\\';
+            }
+        } else {
+            if (length + 1 >= capacity) {
+                capacity *= 2;
+                value = (char*)realloc(value, capacity);
+            }
+            value[length++] = c;
+            lexer_advance(lexer);
         }
-        lexer_advance(lexer);
     }
     
     if (lexer_is_at_end(lexer)) {
+        free(value);
         return token_new(TOKEN_UNKNOWN, "", start_line, start_column);
     }
     
-    size_t end_pos = lexer->current;
-    size_t len = end_pos - content_start;
-    
-    char* value = (char*)malloc(len + 1);
-    strncpy(value, lexer->source + content_start, len);
-    value[len] = '\0';
+    value[length] = '\0';
     
     Token* token = token_new(TOKEN_STRING_LITERAL, value, start_line, start_column);
     token->value.string_value = value;
@@ -261,15 +324,33 @@ Token* lexer_next_token(Lexer* lexer) {
         case ';': lexer_advance(lexer); return token_new(TOKEN_SEMICOLON, ";", lexer->line, lexer->column);
         case ',': lexer_advance(lexer); return token_new(TOKEN_COMMA, ",", lexer->line, lexer->column);
         case ':': lexer_advance(lexer); return token_new(TOKEN_COLON, ":", lexer->line, lexer->column);
-        case '+': lexer_advance(lexer); return token_new(TOKEN_PLUS, "+", lexer->line, lexer->column);
-        case '-': 
+        case '+':
             lexer_advance(lexer);
+            if (lexer_match(lexer, '=')) {
+                return token_new(TOKEN_PLUS_ASSIGN, "+=", lexer->line, lexer->column);
+            }
+            return token_new(TOKEN_PLUS, "+", lexer->line, lexer->column);
+        case '-':
+            lexer_advance(lexer);
+            if (lexer_match(lexer, '=')) {
+                return token_new(TOKEN_MINUS_ASSIGN, "-=", lexer->line, lexer->column);
+            }
             if (lexer_match(lexer, '>')) {
                 return token_new(TOKEN_ARROW, "->", lexer->line, lexer->column);
             }
             return token_new(TOKEN_MINUS, "-", lexer->line, lexer->column);
-        case '*': lexer_advance(lexer); return token_new(TOKEN_STAR, "*", lexer->line, lexer->column);
-        case '/': lexer_advance(lexer); return token_new(TOKEN_SLASH, "/", lexer->line, lexer->column);
+        case '*':
+            lexer_advance(lexer);
+            if (lexer_match(lexer, '=')) {
+                return token_new(TOKEN_STAR_ASSIGN, "*=", lexer->line, lexer->column);
+            }
+            return token_new(TOKEN_STAR, "*", lexer->line, lexer->column);
+        case '/':
+            lexer_advance(lexer);
+            if (lexer_match(lexer, '=')) {
+                return token_new(TOKEN_SLASH_ASSIGN, "/=", lexer->line, lexer->column);
+            }
+            return token_new(TOKEN_SLASH, "/", lexer->line, lexer->column);
         case '%': lexer_advance(lexer); return token_new(TOKEN_PERCENT, "%", lexer->line, lexer->column);
         case '=': 
             lexer_advance(lexer);

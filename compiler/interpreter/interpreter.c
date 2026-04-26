@@ -3,62 +3,91 @@
 #include <string.h>
 #include <stdio.h>
 
-struct Interpreter {
+typedef struct Scope {
     char** names;
     Value* values;
     size_t capacity;
     size_t count;
+    struct Scope* parent;
+} Scope;
+
+struct Interpreter {
+    Scope* current_scope;
     Value return_value;
     int has_return;
+    int has_break;
+    int has_continue;
 };
 
-static Value* interpreter_lookup(Interpreter* interp, const char* name) {
-    for (size_t i = 0; i < interp->count; i++) {
-        if (strcmp(interp->names[i], name) == 0) {
-            return &interp->values[i];
+static Scope* scope_create(size_t capacity, Scope* parent) {
+    Scope* scope = (Scope*)malloc(sizeof(Scope));
+    scope->capacity = capacity;
+    scope->count = 0;
+    scope->parent = parent;
+    scope->names = (char**)malloc(sizeof(char*) * capacity);
+    scope->values = (Value*)malloc(sizeof(Value) * capacity);
+    return scope;
+}
+
+static void scope_free(Scope* scope) {
+    if (!scope) return;
+    for (size_t i = 0; i < scope->count; i++) {
+        free(scope->names[i]);
+        value_free(&scope->values[i]);
+    }
+    free(scope->names);
+    free(scope->values);
+    free(scope);
+}
+
+static Value* scope_lookup(Scope* scope, const char* name) {
+    Scope* current = scope;
+    while (current) {
+        for (size_t i = 0; i < current->count; i++) {
+            if (strcmp(current->names[i], name) == 0) {
+                return &current->values[i];
+            }
+        }
+        current = current->parent;
+    }
+    return NULL;
+}
+
+static Value* scope_lookup_local(Scope* scope, const char* name) {
+    for (size_t i = 0; i < scope->count; i++) {
+        if (strcmp(scope->names[i], name) == 0) {
+            return &scope->values[i];
         }
     }
     return NULL;
 }
 
-static void interpreter_define(Interpreter* interp, const char* name, Value value) {
-    Value* existing = interpreter_lookup(interp, name);
+static Value value_copy(const Value* val);
+
+static void scope_define(Scope* scope, const char* name, Value value) {
+    Value* existing = scope_lookup_local(scope, name);
     if (existing) {
-        if (existing->type == VALUE_STRING) {
-            free(existing->value.string_value);
-        }
-        existing->type = value.type;
-        if (value.type == VALUE_STRING) {
-            existing->value.string_value = strdup(value.value.string_value);
-        } else {
-            existing->value = value.value;
-        }
+        value_free(existing);
+        *existing = value_copy(&value);
         return;
     }
     
-    if (interp->count >= interp->capacity) {
-        interp->capacity *= 2;
-        interp->names = (char**)realloc(interp->names, sizeof(char*) * interp->capacity);
-        interp->values = (Value*)realloc(interp->values, sizeof(Value) * interp->capacity);
+    if (scope->count >= scope->capacity) {
+        scope->capacity *= 2;
+        scope->names = (char**)realloc(scope->names, sizeof(char*) * scope->capacity);
+        scope->values = (Value*)realloc(scope->values, sizeof(Value) * scope->capacity);
     }
-    interp->names[interp->count] = strdup(name);
-    
-    interp->values[interp->count].type = value.type;
-    if (value.type == VALUE_STRING) {
-        interp->values[interp->count].value.string_value = strdup(value.value.string_value);
-    } else {
-        interp->values[interp->count].value = value.value;
-    }
-    interp->count++;
+    scope->names[scope->count] = strdup(name);
+    scope->values[scope->count] = value_copy(&value);
+    scope->count++;
 }
 
 Interpreter* interpreter_new(void) {
     Interpreter* interp = (Interpreter*)malloc(sizeof(Interpreter));
-    interp->capacity = 64;
-    interp->count = 0;
-    interp->names = (char**)malloc(sizeof(char*) * interp->capacity);
-    interp->values = (Value*)malloc(sizeof(Value) * interp->capacity);
+    interp->current_scope = scope_create(64, NULL);
     interp->has_return = 0;
+    interp->has_break = 0;
+    interp->has_continue = 0;
     return interp;
 }
 
@@ -75,17 +104,43 @@ void interpreter_clear_return(Interpreter* interp) {
     interp->has_return = 0;
 }
 
+int interpreter_has_break(Interpreter* interp) {
+    return interp->has_break;
+}
+
+int interpreter_has_continue(Interpreter* interp) {
+    return interp->has_continue;
+}
+
+void interpreter_clear_break_continue(Interpreter* interp) {
+    interp->has_break = 0;
+    interp->has_continue = 0;
+}
+
 void interpreter_free(Interpreter* interp) {
     if (!interp) return;
-    for (size_t i = 0; i < interp->count; i++) {
-        free(interp->names[i]);
-        if (interp->values[i].type == VALUE_STRING) {
-            free(interp->values[i].value.string_value);
-        }
-    }
-    free(interp->names);
-    free(interp->values);
+    scope_free(interp->current_scope);
     free(interp);
+}
+
+static Value value_copy(const Value* val) {
+    Value copy;
+    copy.type = val->type;
+    copy.has_value = val->has_value;
+    
+    if (val->type == VALUE_STRING) {
+        copy.value.string_value = strdup(val->value.string_value);
+        copy.array_length = 0;
+        copy.array_elements = NULL;
+    } else if (val->type == VALUE_ARRAY) {
+        copy.array_length = val->array_length;
+        copy.array_elements = val->array_elements;
+    } else {
+        copy.value = val->value;
+        copy.array_length = val->array_length;
+        copy.array_elements = val->array_elements;
+    }
+    return copy;
 }
 
 Value value_create_int(int64_t val) {
@@ -93,6 +148,18 @@ Value value_create_int(int64_t val) {
     v.type = VALUE_INT;
     v.value.int_value = val;
     v.has_value = 1;
+    v.array_length = 0;
+    v.array_elements = NULL;
+    return v;
+}
+
+Value value_create_float(double val) {
+    Value v;
+    v.type = VALUE_FLOAT;
+    v.value.float_value = val;
+    v.has_value = 1;
+    v.array_length = 0;
+    v.array_elements = NULL;
     return v;
 }
 
@@ -101,6 +168,8 @@ Value value_create_string(char* val) {
     v.type = VALUE_STRING;
     v.value.string_value = strdup(val);
     v.has_value = 1;
+    v.array_length = 0;
+    v.array_elements = NULL;
     return v;
 }
 
@@ -109,6 +178,8 @@ Value value_create_bool(int val) {
     v.type = VALUE_BOOL;
     v.value.bool_value = val;
     v.has_value = 1;
+    v.array_length = 0;
+    v.array_elements = NULL;
     return v;
 }
 
@@ -117,6 +188,7 @@ Value value_create_none(void) {
     v.type = VALUE_NONE;
     v.has_value = 0;
     v.array_length = 0;
+    v.array_elements = NULL;
     return v;
 }
 
@@ -134,7 +206,13 @@ void value_free(Value* value) {
     if (!value) return;
     if (value->type == VALUE_STRING) {
         free(value->value.string_value);
+        value->array_length = 0;
+        value->array_elements = NULL;
+    } else if (value->type == VALUE_ARRAY) {
+        value->array_length = 0;
+        value->array_elements = NULL;
     }
+    value->type = VALUE_NONE;
 }
 
 char* value_to_string(Value* value) {
@@ -171,6 +249,9 @@ void value_print(Value* value) {
         case VALUE_INT:
             printf("%ld", (long)value->value.int_value);
             break;
+        case VALUE_FLOAT:
+            printf("%g", value->value.float_value);
+            break;
         case VALUE_STRING:
             printf("%s", value->value.string_value);
             break;
@@ -179,6 +260,14 @@ void value_print(Value* value) {
             break;
         case VALUE_NONE:
             printf("nil");
+            break;
+        case VALUE_ARRAY:
+            printf("[");
+            for (size_t i = 0; i < value->array_length; i++) {
+                if (i > 0) printf(", ");
+                value_print(value->array_elements[i]);
+            }
+            printf("]");
             break;
     }
 }
@@ -205,13 +294,15 @@ int64_t value_as_int(Value* value) {
     return 0;
 }
 
-Value interpreter_evaluate(Interpreter* interp, ASTNode* node) {
+static Value interpreter_evaluate(Interpreter* interp, ASTNode* node) {
     if (!node) return value_create_none();
     
     switch (node->type) {
         case AST_LITERAL: {
             if (node->data.literal.literal_type == TOKEN_INT_LITERAL) {
                 return value_create_int(node->data.literal.value.int_value);
+            } else if (node->data.literal.literal_type == TOKEN_FLOAT_LITERAL) {
+                return value_create_float(node->data.literal.value.float_value);
             } else if (node->data.literal.literal_type == TOKEN_STRING_LITERAL) {
                 return value_create_string(node->data.literal.value.string_value);
             } else if (node->data.literal.literal_type == TOKEN_BOOL_LITERAL) {
@@ -222,19 +313,9 @@ Value interpreter_evaluate(Interpreter* interp, ASTNode* node) {
         
         case AST_IDENTIFIER: {
             char* name = node->data.identifier.name;
-            Value* val = interpreter_lookup(interp, name);
+            Value* val = scope_lookup(interp->current_scope, name);
             if (val) {
-                Value copy;
-                copy.type = val->type;
-                copy.has_value = val->has_value;
-                copy.array_length = val->array_length;
-                copy.array_elements = val->array_elements;
-                if (val->type == VALUE_STRING) {
-                    copy.value.string_value = strdup(val->value.string_value);
-                } else {
-                    copy.value = val->value;
-                }
-                return copy;
+                return value_copy(val);
             }
             fprintf(stderr, "Error: Undefined variable '%s'\n", name);
             return value_create_none();
@@ -249,6 +330,12 @@ Value interpreter_evaluate(Interpreter* interp, ASTNode* node) {
             if (op == TOKEN_PLUS) {
                 if (left.type == VALUE_INT && right.type == VALUE_INT) {
                     result = value_create_int(left.value.int_value + right.value.int_value);
+                } else if (left.type == VALUE_FLOAT && right.type == VALUE_FLOAT) {
+                    result = value_create_float(left.value.float_value + right.value.float_value);
+                } else if (left.type == VALUE_INT && right.type == VALUE_FLOAT) {
+                    result = value_create_float((double)left.value.int_value + right.value.float_value);
+                } else if (left.type == VALUE_FLOAT && right.type == VALUE_INT) {
+                    result = value_create_float(left.value.float_value + (double)right.value.int_value);
                 } else if (left.type == VALUE_STRING && right.type == VALUE_STRING) {
                     size_t len = strlen(left.value.string_value) + strlen(right.value.string_value) + 1;
                     char* combined = (char*)malloc(len);
@@ -262,12 +349,24 @@ Value interpreter_evaluate(Interpreter* interp, ASTNode* node) {
             if (op == TOKEN_MINUS) {
                 if (left.type == VALUE_INT && right.type == VALUE_INT) {
                     result = value_create_int(left.value.int_value - right.value.int_value);
+                } else if (left.type == VALUE_FLOAT && right.type == VALUE_FLOAT) {
+                    result = value_create_float(left.value.float_value - right.value.float_value);
+                } else if (left.type == VALUE_INT && right.type == VALUE_FLOAT) {
+                    result = value_create_float((double)left.value.int_value - right.value.float_value);
+                } else if (left.type == VALUE_FLOAT && right.type == VALUE_INT) {
+                    result = value_create_float(left.value.float_value - (double)right.value.int_value);
                 }
             }
             
             if (op == TOKEN_STAR) {
                 if (left.type == VALUE_INT && right.type == VALUE_INT) {
                     result = value_create_int(left.value.int_value * right.value.int_value);
+                } else if (left.type == VALUE_FLOAT && right.type == VALUE_FLOAT) {
+                    result = value_create_float(left.value.float_value * right.value.float_value);
+                } else if (left.type == VALUE_INT && right.type == VALUE_FLOAT) {
+                    result = value_create_float((double)left.value.int_value * right.value.float_value);
+                } else if (left.type == VALUE_FLOAT && right.type == VALUE_INT) {
+                    result = value_create_float(left.value.float_value * (double)right.value.int_value);
                 }
             }
             
@@ -277,6 +376,24 @@ Value interpreter_evaluate(Interpreter* interp, ASTNode* node) {
                         fprintf(stderr, "Error: Division by zero\n");
                     } else {
                         result = value_create_int(left.value.int_value / right.value.int_value);
+                    }
+                } else if (left.type == VALUE_FLOAT && right.type == VALUE_FLOAT) {
+                    if (right.value.float_value == 0.0) {
+                        fprintf(stderr, "Error: Division by zero\n");
+                    } else {
+                        result = value_create_float(left.value.float_value / right.value.float_value);
+                    }
+                } else if (left.type == VALUE_INT && right.type == VALUE_FLOAT) {
+                    if (right.value.float_value == 0.0) {
+                        fprintf(stderr, "Error: Division by zero\n");
+                    } else {
+                        result = value_create_float((double)left.value.int_value / right.value.float_value);
+                    }
+                } else if (left.type == VALUE_FLOAT && right.type == VALUE_INT) {
+                    if (right.value.int_value == 0) {
+                        fprintf(stderr, "Error: Division by zero\n");
+                    } else {
+                        result = value_create_float(left.value.float_value / (double)right.value.int_value);
                     }
                 }
             }
@@ -305,6 +422,18 @@ Value interpreter_evaluate(Interpreter* interp, ASTNode* node) {
                 }
             }
             
+            if (op == TOKEN_EQ) {
+                if (left.type == VALUE_INT && right.type == VALUE_INT) {
+                    result = value_create_bool(left.value.int_value == right.value.int_value);
+                }
+            }
+            
+            if (op == TOKEN_NEQ) {
+                if (left.type == VALUE_INT && right.type == VALUE_INT) {
+                    result = value_create_bool(left.value.int_value != right.value.int_value);
+                }
+            }
+            
             value_free(&left);
             value_free(&right);
             return result;
@@ -330,7 +459,7 @@ Value interpreter_evaluate(Interpreter* interp, ASTNode* node) {
         
         case AST_ASSIGN: {
             Value value = interpreter_evaluate(interp, node->data.assign.value);
-            interpreter_define(interp, node->data.assign.name, value);
+            scope_define(interp->current_scope, node->data.assign.name, value);
             return value;
         }
         
@@ -352,21 +481,13 @@ Value interpreter_evaluate(Interpreter* interp, ASTNode* node) {
                 int64_t idx = index_val.value.int_value;
                 if (idx >= 0 && (size_t)idx < array_val.array_length) {
                     Value* result = array_val.array_elements[idx];
-                    Value copy;
-                    copy.type = result->type;
-                    copy.has_value = result->has_value;
-                    copy.array_length = result->array_length;
-                    copy.array_elements = result->array_elements;
-                    if (result->type == VALUE_STRING) {
-                        copy.value.string_value = strdup(result->value.string_value);
-                    } else {
-                        copy.value = result->value;
-                    }
+                    Value copy = value_copy(result);
                     value_free(&array_val);
                     value_free(&index_val);
                     return copy;
                 } else {
-                    fprintf(stderr, "Error: Index out of bounds\n");
+                    fprintf(stderr, "Error: Index out of bounds (index %ld, length %zu)\n", 
+                            (long)idx, array_val.array_length);
                     value_free(&array_val);
                     value_free(&index_val);
                     return value_create_none();
@@ -405,11 +526,36 @@ Value interpreter_evaluate(Interpreter* interp, ASTNode* node) {
 
 static void interpreter_execute_statement(Interpreter* interp, ASTNode* node);
 
-static void interpreter_execute_block(Interpreter* interp, ASTNode* node) {
+static void interpreter_execute_block_scoped(Interpreter* interp, ASTNode* node) {
     if (!node || node->type != AST_BLOCK) return;
+    
+    Scope* block_scope = scope_create(16, interp->current_scope);
+    Scope* old_scope = interp->current_scope;
+    interp->current_scope = block_scope;
     
     for (size_t i = 0; i < node->data.block.count; i++) {
         interpreter_execute_statement(interp, node->data.block.statements[i]);
+        if (interp->has_break || interp->has_continue || interp->has_return) {
+            break;
+        }
+    }
+    
+    interp->current_scope = old_scope;
+    scope_free(block_scope);
+}
+
+static void interpreter_execute_body(Interpreter* interp, ASTNode* body) {
+    if (!body) return;
+    
+    if (body->type == AST_BLOCK) {
+        for (size_t i = 0; i < body->data.block.count; i++) {
+            interpreter_execute_statement(interp, body->data.block.statements[i]);
+            if (interp->has_break || interp->has_continue || interp->has_return) {
+                break;
+            }
+        }
+    } else {
+        interpreter_execute_statement(interp, body);
     }
 }
 
@@ -422,17 +568,17 @@ static void interpreter_execute_statement(Interpreter* interp, ASTNode* node) {
             ASTNode* init = node->data.var_decl.initializer;
             
             Value value = interpreter_evaluate(interp, init);
-            interpreter_define(interp, name, value);
+            scope_define(interp->current_scope, name, value);
             break;
         }
         
         case AST_BLOCK:
-            interpreter_execute_block(interp, node);
+            interpreter_execute_block_scoped(interp, node);
             break;
         
         case AST_FN_DECL:
             if (node->data.fn_decl.body) {
-                interpreter_execute_block(interp, node->data.fn_decl.body);
+                interpreter_execute_block_scoped(interp, node->data.fn_decl.body);
             }
             break;
         
@@ -462,15 +608,29 @@ static void interpreter_execute_statement(Interpreter* interp, ASTNode* node) {
         }
         
         case AST_WHILE_STMT: {
-            while (1) {
+            while (!interp->has_return && !interp->has_break) {
                 Value condition = interpreter_evaluate(interp, node->data.while_stmt.condition);
                 if (!value_as_bool(&condition)) {
                     value_free(&condition);
                     break;
                 }
                 value_free(&condition);
-                interpreter_execute_statement(interp, node->data.while_stmt.body);
-                if (interp->has_return) break;
+                interpreter_execute_body(interp, node->data.while_stmt.body);
+                
+                if (interp->has_break) {
+                    break;
+                }
+                
+                if (interp->has_continue) {
+                    interp->has_continue = 0;
+                }
+            }
+            
+            if (interp->has_break) {
+                interp->has_break = 0;
+            }
+            if (interp->has_continue) {
+                interp->has_continue = 0;
             }
             break;
         }
@@ -479,7 +639,8 @@ static void interpreter_execute_statement(Interpreter* interp, ASTNode* node) {
             if (node->data.for_stmt.initializer) {
                 interpreter_execute_statement(interp, node->data.for_stmt.initializer);
             }
-            while (1) {
+            
+            while (!interp->has_return && !interp->has_break) {
                 if (node->data.for_stmt.condition) {
                     Value condition = interpreter_evaluate(interp, node->data.for_stmt.condition);
                     if (!value_as_bool(&condition)) {
@@ -487,13 +648,40 @@ static void interpreter_execute_statement(Interpreter* interp, ASTNode* node) {
                         break;
                     }
                     value_free(&condition);
+}
+                
+                interpreter_execute_body(interp, node->data.for_stmt.body);
+                
+                if (interp->has_break) {
+                    break;
                 }
-                interpreter_execute_statement(interp, node->data.for_stmt.body);
-                if (interp->has_return) break;
+                
+                if (interp->has_continue) {
+                    interp->has_continue = 0;
+                }
+                
                 if (node->data.for_stmt.update) {
-                    interpreter_evaluate(interp, node->data.for_stmt.update);
+                    Value update_result = interpreter_evaluate(interp, node->data.for_stmt.update);
+                    value_free(&update_result);
                 }
             }
+            
+            if (interp->has_break) {
+                interp->has_break = 0;
+            }
+            if (interp->has_continue) {
+                interp->has_continue = 0;
+            }
+            break;
+        }
+        
+        case AST_BREAK_STMT: {
+            interp->has_break = 1;
+            break;
+        }
+        
+        case AST_CONTINUE_STMT: {
+            interp->has_continue = 1;
             break;
         }
         
@@ -510,7 +698,7 @@ static void interpreter_execute_statement(Interpreter* interp, ASTNode* node) {
         
         case AST_ASSIGN: {
             Value value = interpreter_evaluate(interp, node->data.assign.value);
-            interpreter_define(interp, node->data.assign.name, value);
+            scope_define(interp->current_scope, node->data.assign.name, value);
             break;
         }
         

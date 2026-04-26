@@ -8,7 +8,7 @@ A lightweight, expression-oriented programming language written in C.
 |---------|--------|---------|
 | Variables | `let x = 10` | `let x = 10` |
 | Functions | `fn add(a, b) { return a + b }` | `fn add(a, b) { return a + b }` |
-| If / Else | `if x > 0 { ... } else { ... }` | `if x > 0 { ... } else { ... }` |
+| If / Else / else if | `if x > 0 { ... } else if x > 5 { ... } else { ... }` | `if x > 0 { ... } else if x > 5 { ... } else { ... }` |
 | While loop | `while x > 0 { ... }` | `while x > 0 { ... }` |
 | For loop | `for let i = 0; i < 3; i = i + 1 { ... }` | `for let i = 0; i < 3; i = i + 1 { ... }` |
 | Break / Continue | `break` / `continue` | `break` / `continue` |
@@ -16,10 +16,14 @@ A lightweight, expression-oriented programming language written in C.
 | Comparison | `==` `!=` `<` `<=` `>` `>=` | `==` `!=` `<` `<=` `>` `>=` |
 | Boolean logic | `and` `or` `not` | `and` `or` `not` |
 | Print | `print("Hello")` | `print("Hello")` |
+| Compound assignment | `x += 1`, `x -= 2`, `x *= 3`, `x /= 4` | `x += 1`, `x -= 2`, `x *= 3`, `x /= 4` |
 | Arrays | `let arr = [1, 2, 3]` | `let arr = [1, 2, 3]` |
 | Array access | `arr[0]` | `arr[0]` |
 | String concat | `"a" + "b"` | `"a" + "b"` |
+| String escapes | `"Hello\nWorld"`, `"Tab\there"` | `"Hello\nWorld"`, `"Tab\there"` |
 | String len | `len(s)` | `len(s)` |
+| Floats | `let pi = 3.14159` | `let pi = 3.14159` |
+| null/nil | `let x = null` | `let x = null` |
 
 ## Building
 
@@ -60,7 +64,85 @@ fn main() {
 }
 ```
 
-### For Loop
+### For Loop with Break and Continue
+
+```hunnu
+fn main() {
+    let i = 0
+    let count = 0
+    while i < 10 {
+        i = i + 1
+        if i == 5 { continue }
+        if i == 8 { break }
+        count = count + 1
+    }
+    print(count)  // prints 6
+}
+```
+
+### Compound Assignment
+
+```hunnu
+fn main() {
+    let x = 10
+    x += 5
+    x -= 3
+    x *= 2
+    print(x)  // 24
+}
+```
+
+### else if Chains
+
+```hunnu
+fn main() {
+    let score = 85
+    if score >= 90 {
+        print("A")
+    } else if score >= 80 {
+        print("B")
+    } else if score >= 70 {
+        print("C")
+    } else {
+        print("F")
+    }
+}
+```
+
+### Floating Point
+
+```hunnu
+fn main() {
+    let pi = 3.14159
+    let r = 2.0
+    print(pi * r * r)  // 12.5664
+    print(10 + 3.5)    // 13.5
+}
+```
+
+### String Escapes
+
+```hunnu
+fn main() {
+    print("Hello\nWorld")       // newline
+    print("Tab\there")           // tab
+    print("Quote: \"test\"")      // escaped quote
+    print("Backslash: \\")       // escaped backslash
+}
+```
+
+### Scoped Variables
+
+```hunnu
+fn main() {
+    let x = 10
+    {
+        let x = 20          // shadows outer x
+        print(x)            // 20
+    }
+    print(x)                // 10
+}
+```
 
 ```hunnu
 fn main() {
@@ -223,12 +305,11 @@ hunnu-lang/
 
 ## Roadmap / Зорилтууд
 
-See [`future-improvements.md`](future-improvements.md) for the full list. Near-term priorities:
+See [`plan.md`](plan.md) for the full development roadmap.
 
-- Scoped variable environments (function-local variables)
-- First-class function calls
-- Arrays and string operations
-- Better runtime error messages with line numbers
+### Completed
+- ✅ Phase 1: Foundation Fixes (scoping, break/continue, memory fixes)
+- ✅ Phase 2: Core Language Features (compound assignment, else if, floats, null/nil, string escapes)
 
 ## License
 
