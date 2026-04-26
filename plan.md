@@ -1,145 +1,145 @@
-# Hunnu хэл — Хөгжлийн төлөвлөгөө
+# Hunnu Language — Development Plan
 
-> Hunnu-ийн одоогийн байдал, тэргүүлэх ажлууд болон алсын хараа.
+> A living document tracking the state, priorities, and vision for Hunnu.
 
 ---
 
-## Одоогийн төлөв
+## Current Language State
 
-### Ажиллаж байгаа онцлогууд
+### Working Features
 
-| Онцлог | Синтакс | Жишээ |
-|--------|---------|--------|
-| Хувьсагч | `let x = 5` | `let x = 5` |
-| Арифметик | `+`, `-`, `*`, `/`, `%` | `x + y * z` |
-| Харьцуулалт | `>`, `<`, `>=`, `<=`, `==`, `!=` | `if x > 0 { ... }` |
-|，布л | `and`, `or`, `not` | `if a and b { ... }` |
-| `if` / `else` | `if x > 0 { ... } else { ... }` | `if x > 0 { " их " } else { " бага " }` |
-| `else if` | `else if` гинж | `else if x > 5 { ... } else { ... }` |
-| `while` давталт | `while(condition) { body }` | `while i < 10 { i = i + 1 }` |
-| `for` давталт | `for(init; condition; update) { body }` | `for let i = 0; i < 3; i = i + 1 { ... }` |
-| Функц | `fn name(params) { body }` | `fn add(a, b) { return a + b }` |
-| `return` | `return expression` | `return a + b` |
-| `print` | `print(value)` | `print("Hello")` |
-| Дахин оноох | `x = new_value` | `x = 10` |
-| `+=`, `-=`, `*=`, `/=` | `x += 1` | `x += 5` |
-| Массив | `[1, 2, 3]` | `let arr = [1, 2, 3]` |
-| Массив хандалт | `arr[i]` | `arr[0]` |
-| Тэмдэгт нийлэх | `"a" + "b"` | `"Hello " + "World"` |
-| Тэмдэгт орлоос | `\n`, `\t`, `\\`, `\"` | `"Hello\nWorld"` |
+| Feature | Syntax | Example |
+|---------|--------|---------|
+| Variables | `let x = 5` | `let x = 5` |
+| Arithmetic | `+`, `-`, `*`, `/`, `%` | `x + y * z` |
+| Comparison | `>`, `<`, `>=`, `<=`, `==`, `!=` | `if x > 0 { ... }` |
+| Boolean | `and`, `or`, `not` | `if a and b { ... }` |
+| If/else | `if x > 0 { ... } else { ... }` | `if x > 0 { "A" } else { "B" }` |
+| else if | `else if` chains | `else if x > 5 { ... } else { ... }` |
+| While loop | `while(condition) { body }` | `while i < 10 { i = i + 1 }` |
+| For loop | `for(init; condition; update) { body }` | `for let i = 0; i < 3; i = i + 1 { ... }` |
+| Functions | `fn name(params) { body }` | `fn add(a, b) { return a + b }` |
+| Return | `return expression` | `return a + b` |
+| Print | `print(value)` | `print("Hello")` |
+| Variable reassignment | `x = new_value` | `x = 10` |
+| Compound assignment | `+=`, `-=`, `*=`, `/=` | `x += 1` |
+| Arrays | `[1, 2, 3]` | `let arr = [1, 2, 3]` |
+| Array access | `arr[i]` | `arr[0]` |
+| String concat | `"a" + "b"` | `"Hello " + "World"` |
+| String escapes | `\n`, `\t`, `\\`, `\"` | `"Hello\nWorld"` |
 | `len()` | `len(s)` | `len("abc")` |
 | `input()` | `input()` | `let name = input()` |
 | `to_int()` | `to_int(s)` | `to_int("42")` |
 | `to_float()` | `to_float(s)` | `to_float("3.14")` |
 | `to_str()` | `to_str(n)` | `to_str(42)` |
-| `float` тоо | `3.14159` | `let pi = 3.14` |
-| `null`/`nil` | `let x = null` | `let x = nil` |
-| `break` | `break` | `while i < 10 { if i == 5 { break } }` |
-| `continue` | `continue` | `while i < 10 { i = i + 1; if i == 3 { continue } }` |
-| Хүрээлэл | `{ let x = 10 ... }` | Хувьсагч хүрээлэх |
+| Float | `3.14159` | `let pi = 3.14` |
+| null/nil | `null` / `nil` | `let x = null` |
+| break | `break` | `while i < 10 { if i == 5 { break } }` |
+| continue | `continue` | `while i < 10 { i = i + 1; if i == 3 { continue } }` |
+| Scoping | `{ ... }` | Block-scoped variables |
 
 ---
 
-## CLI хэрэглээ
+## CLI Usage
 
 ```bash
-# Эх код ажиллуулах (interpreter)
+# Run with interpreter
 ./hunnu run examples/main.hn
 
-# VM-ээр ажиллуулах
+# Run with VM
 ./hunnu run examples/main.hn --vm
 
-# Bytecode гаргах
+# Output bytecode
 ./hunnu build examples/main.hn
 
-# Токенүүд хэвлэх (debug)
+# Debug tokens and AST
 ./hunnu run examples/main.hn --debug
 
-# AST хэвлэх (debug)
+# Output AST only
 ./hunnu ast examples/main.hn
 ```
 
 ---
 
-## Фаз
+## Phases
 
-### Phase 1: Үндсэн засварууд ✅
-*2025 оны 4-р сар*
+### Phase 1: Foundation Fixes ✅
+*April 2025*
 
-| # | Онцлог | Тайлбар |
-|----|--------|---------|
-| 1 | Хувьсагч хүрээлэл (scope stack) | `{ ... }` дотор хувьсагч |
-| 2 | `break`/`continue` | Давталтаас гарах |
-| 3 | Массив хязгаар шалгах | `arr[i]` IndexError |
-| 4 | Тэмдэгт санах ой | Dangling pointer засах |
+| # | Feature | Description |
+|----|--------|-------------|
+| 1 | Variable scoping (scope stack) | Block-scoped variables |
+| 2 | break/continue | Loop control flow |
+| 3 | Array bounds checking | `arr[i]` IndexError |
+| 4 | String memory safety | Dangling pointer fixes |
 
-**Файлууд:** `interpreter.c`, `parser.c`
+**Files:** `interpreter.c`, `parser.c`
 
-### Phase 2: Түлхүүр онцлогууд ✅
-*2025 оны 4-р сар*
+### Phase 2: Core Language Features ✅
+*April 2025*
 
-| # | Онцлог | Тайлбар |
-|----|--------|---------|
-| 1 | `+=`, `-=`, `*=`, `/=` | Нийлэх, хасах, үржүүлэх, хуваах |
-| 2 | `else if` гинж | Олон нөхцөл шалгах |
-| 3 | `float` тоо | `3.14`, `2.0` |
-| 4 | `null`/`nil` | `let x = null` |
+| # | Feature | Description |
+|----|--------|-------------|
+| 1 | Compound assignment: `+=`, `-=`, etc | `x += 1` |
+| 2 | `else if` chains | Multiple conditions |
+| 3 | Floating-point numbers | `3.14`, `2.0` |
+| 4 | `null`/`nil` literal | `let x = null` |
 
-**Файлууд:** `lexer.c`, `token.h`, `parser.c`, `interpreter.c`
+**Files:** `lexer.c`, `token.h`, `parser.c`, `interpreter.c`
 
-### Phase 3: Стандарт сан + DX ✅
-*2025 оны 4-р сар*
+### Phase 3: Standard Library + DX ✅
+*April 2025*
 
-| # | Онцлог | Тайлбар |
-|----|--------|---------|
-| 1 | `input()` | Стандарт оролдсон |
-| 2 | `to_int()`, `to_float()`, `to_str()` | Төрөл шилжүүлэх |
-| 3 | `--debug` | Токен, AST хэвлэх |
+| # | Feature | Description |
+|----|--------|-------------|
+| 1 | `input()` | Read from stdin |
+| 2 | `to_int()`, `to_float()`, `to_str()` | Type conversions |
+| 3 | `--debug` flag | Show tokens and AST |
 
-**Файлууд:** `interpreter.c`, `cli/main.c`
+**Files:** `interpreter.c`, `cli/main.c`
 
 ### Phase 4: Bytecode + VM ✅
-*2025 оны 4-р сар*
+*April 2025*
 
-| # | Онцлог | Тайлбар |
-|----|--------|---------|
-| 1 | Bytecode компилятор | AST → bytecode |
-| 2 | Virtual Machine | Bytecode ажиллуулах |
-| 3 | `build` команды | Bytecode гаргах |
-| 4 | `--vm` туг | VM ажиллуулах |
+| # | Feature | Description |
+|----|--------|-------------|
+| 1 | Bytecode compiler | AST → bytecode |
+| 2 | Virtual Machine | Bytecode execution |
+| 3 | `build` command | Output bytecode |
+| 4 | `--vm` flag | Run with VM |
 
-**Файлууд:** `compiler/vm/`
+**Files:** `compiler/vm/`
 
 ---
 
-## Дараагийн алхсууд
+## Next Steps
 
-### Түлхүүр (2025)
+### High Priority (2025)
 
-| # | Онцлог | Тайлбар |
-|----|--------|---------|
-| 1 | Модуль/`import` | Файлууд хооронд импорт |
-| 2 | Стандарт сан | нийтлэг функцүүд |
+| # | Feature | Description |
+|----|--------|-------------|
+| 1 | Modules/`import` | Split code across files |
+| 2 | Standard library | Common functions |
 
-### Дунд (2026+)
+### Medium Priority (2026+)
 
-| # | Онцлог | Тайлбар |
-|----|--------|---------|
-| 1 | Struct/Record | `type Point = { x: int, y: int }` |
+| # | Feature | Description |
+|----|--------|-------------|
+| 1 | Structs/Records | `type Point = { x: int, y: int }` |
 | 2 | Pattern matching | `match x { ... }` |
-| 3 | ADT (Sum type) | `type Maybe[T] = Just(T) \| Nothing` |
+| 3 | ADT (Sum types) | `type Maybe[T] = Just(T) \| Nothing` |
 
-### Алсын хараа
+### Long-term Vision
 
-| # | Онцлог | Тайлбар |
-|----|--------|---------|
-| 1 | Self-hosting | Хэлээ өөрөө бичигдсэн |
-| 2 | JIT | JIT компиляц |
-| 3 | AOT | Бинар гаралт |
+| # | Feature | Description |
+|----|--------|-------------|
+| 1 | Self-hosting | Write compiler in Hunnu |
+| 2 | JIT | Just-in-time compilation |
+| 3 | AOT | Binary output |
 
 ---
 
-## Жишээ код
+## Code Examples
 
 ### Hello World
 
@@ -149,7 +149,7 @@ fn main() {
 }
 ```
 
-### Фибоначчи
+### Fibonacci
 
 ```hunnu
 fn fib(n) {
@@ -164,7 +164,7 @@ fn main() {
 }
 ```
 
-### Массивтай ажиллах
+### Arrays
 
 ```hunnu
 fn main() {
@@ -174,7 +174,7 @@ fn main() {
 }
 ```
 
-### While давталт
+### While Loop
 
 ```hunnu
 fn main() {
@@ -204,7 +204,7 @@ fn main() {
 }
 ```
 
-### Төрөл шилжүүлэх
+### Type Conversions
 
 ```hunnu
 fn main() {
@@ -222,21 +222,21 @@ fn main() {
 
 ---
 
-## Файлын бүтэц
+## File Structure
 
 ```
 hunnu-lang/
 ├── compiler/
-│   ├── lexer/          # Токенчлог
+│   ├── lexer/          # Tokenizer
 │   │   ├── lexer.c
 │   │   └── token.h
-│   ├── parser/        # Парсер (AST)
+│   ├── parser/        # Parser (AST)
 │   │   ├── parser.c
 │   │   └── parser.h
-│   ├── ast/          # AST төрөл
+│   ├── ast/          # AST node types
 │   │   ├── ast.c
 │   │   └── ast.h
-│   ├── interpreter/  # Уламжлалт тоглогч
+│   ├── interpreter/  # Tree-walk interpreter
 │   │   ├── interpreter.c
 │   │   └── interpreter.h
 │   └── vm/          # Bytecode + VM
@@ -248,26 +248,26 @@ hunnu-lang/
 ├── cli/              # CLI
 │   ├── main.c
 │   └── cli.h
-├── examples/         # Жишээ код
+├── examples/         # Example code
 └── CMakeLists.txt
 ```
 
 ---
 
-## Хөгжлийн түүх
+## Development Timeline
 
 ```
-2025-04  Phase 1: Үндсэн засварууд
-2025-04  Phase 2: Түлхүүр онцлогууд
-2025-04  Phase 3: Стандарт сан + DX
+2025-04  Phase 1: Foundation Fixes
+2025-04  Phase 2: Core Language Features
+2025-04  Phase 3: Standard Library + DX
 2025-04  Phase 4: Bytecode + VM
 ```
 
 ---
 
-## Холбоо
+## Links
 
-- Вэб: https://hunnu-lang.dev
+- Web: https://hunnu-lang.dev
 - GitHub: https://github.com/hunnu-labs/hunnu-lang
 
 MIT License © 2025 Hunnu

@@ -1,38 +1,34 @@
-# Хүмүүн хэл
+# Hunnu
 
-> Хөнгөн, илэрхийлэлд төвлөсөн, C хэл дээр бичигдсэн програмчлалын хэл.
-
----
-
-## онцлогууд
-
-| онцлог | синтакс | жишээ |
-|---------|---------|--------|
-| хувьсагч | `let x = 5` | `let x = 5` |
-| арифметик | `+` `-` `*` `/` `%` | `x + y * z` |
-| харьцуулалт | `==` `!=` `<` `<=` `>` `>=` | `if x > 0` |
-| логик | `and` `or` `not` | `if a and b` |
-| нөхцөл | `if` / `else` / `else if` | `if x > 0 { ... } else { ... }` |
-| давталт | `while` | `while i < 10 { ... }` |
-| давталт | `for` | `for let i = 0; i < 3; i = i + 1 { ... }` |
-| функц | `fn` | `fn add(a, b) { return a + b }` |
-| буцаах | `return` | `return a + b` | 
-| хэвлэх | `print` | `print("Сайн уу")` |
-| массив | `[1, 2, 3]` | `let arr = [1, 2, 3]` |
-| массив хандалт | `arr[i]` | `arr[0]` |
-| тэмдэгт | `"a" + "b"` | `"Сайн " + "уу"` |
-| урт | `len(s)` | `len("Хүмүүн")` |
-| оруулах | `input()` | `let нэр = input()` |
-| төрөл шилжүүлэх | `to_int()` `to_float()` `to_str()` | `to_int("42")` |
-| бодит тоо | `3.14` | `let pi = 3.14` |
-| хоосон | `null` / `nil` | `let x = null` |
-| зогсоох | `break` | `break` |
-| үргэлжлүүлэх | `continue` | `continue` |
-| хүрээлэл | `{ ... }` | `{ let x = 10 ... }` |
+A lightweight, expression-oriented programming language written in C.
 
 ---
 
-## Барих
+## Features
+
+| Feature | Syntax | Example |
+|---------|--------|---------|
+| Variables | `let x = 10` | `let x = 10` |
+| Functions | `fn add(a, b) { return a + b }` | `fn add(a, b) { return a + b }` |
+| If / Else / else if | `if x > 0 { ... } else if x > 5 { ... } else { ... }` | `if x > 0 { ... } else { ... }` |
+| While loop | `while x > 0 { ... }` | `while i < 10 { ... }` |
+| For loop | `for let i = 0; i < 3; i = i + 1 { ... }` | `for let i = 0; i < 3; i = i + 1 { ... }` |
+| Arithmetic | `+` `-` `*` `/` `%` | `x + y * z` |
+| Comparison | `==` `!=` `<` `<=` `>` `>=` | `if x > 0 { ... }` |
+| Boolean logic | `and` `or` `not` | `if a and b { ... }` |
+| Print | `print("Hello")` | `print("Hello")` |
+| Compound assignment | `x += 1`, `x -= 2`, `x *= 3`, `x /= 4` | `x += 5` |
+| Arrays | `let arr = [1, 2, 3]` | `let arr = [1, 2, 3]` |
+| Array access | `arr[0]` | `arr[0]` |
+| String concat | `"a" + "b"` | `"Hello " + "World"` |
+| String escapes | `"Hello\nWorld"`, `"Tab\there"` | `"Hello\nWorld"` |
+| String len | `len(s)` | `len(s)` |
+| Floats | `let pi = 3.14159` | `let pi = 3.14` |
+| null/nil | `let x = null` | `let x = null` |
+
+---
+
+## Building
 
 ```bash
 mkdir build && cd build
@@ -42,7 +38,7 @@ make
 
 ---
 
-## Ажиллуулах
+## Running
 
 ```bash
 ./build/hunnu run examples/main.hn
@@ -53,17 +49,17 @@ make
 
 ---
 
-## Жишээнүүд
+## Examples
 
-### Сайн уу дэлхий
+### Hello World
 
 ```hunnu
 fn main() {
-    print("Сайн уу, Дэлхий!")
+    print("Hello, World!")
 }
 ```
 
-### Фибоначчи
+### Fibonacci
 
 ```hunnu
 fn fib(n) {
@@ -74,108 +70,158 @@ fn fib(n) {
 }
 
 fn main() {
-    print(fib(10))
+    print(fib(10))  // 55
 }
 ```
 
-### Массивтай ажиллах
+### For Loop with Break and Continue
 
 ```hunnu
 fn main() {
-    let тоонууд = [10, 20, 30, 40, 50]
-    print(тоонууд[0])
-    print(len(тоонууд))
+    let i = 0
+    let count = 0
+    while i < 10 {
+        i = i + 1
+        if i == 5 { continue }
+        if i == 8 { break }
+        count = count + 1
+    }
+    print(count)  // 6
 }
 ```
 
-### Хүрээлэл
+### Compound Assignment
+
+```hunnu
+fn main() {
+    let x = 10
+    x += 5
+    x -= 3
+    x *= 2
+    print(x)  // 24
+}
+```
+
+### else if Chains
+
+```hunnu
+fn main() {
+    let score = 85
+    if score >= 90 {
+        print("A")
+    } else if score >= 80 {
+        print("B")
+    } else if score >= 70 {
+        print("C")
+    } else {
+        print("F")
+    }
+}
+```
+
+### Floating Point
+
+```hunnu
+fn main() {
+    let pi = 3.14159
+    let r = 2.0
+    print(pi * r * r)  // 12.5664
+    print(10 + 3.5)    // 13.5
+}
+```
+
+### String Escapes
+
+```hunnu
+fn main() {
+    print("Hello\nWorld")       // newline
+    print("Tab\there")           // tab
+    print("Quote: \"test\"")      // escaped quote
+    print("Backslash: \\")       // escaped backslash
+}
+```
+
+### Scoped Variables
 
 ```hunnu
 fn main() {
     let x = 10
     {
-        let x = 20
-        print(x)
+        let x = 20          // shadows outer x
+        print(x)            // 20
     }
-    print(x)
+    print(x)                // 10
 }
 ```
 
-### Давталт зогсоох
+### Functions
 
 ```hunnu
+fn add(a, b) {
+    return a + b
+}
+
 fn main() {
-    let i = 0
-    while i < 10 {
-        i = i + 1
-        if i == 5 {
-            continue
-        }
-        if i == 8 {
-            break
-        }
-        print(i)
-    }
+    let result = add(5, 3)
+    print(result)
 }
 ```
 
-### Төрөл шилжүүлэх
+### Arrays
 
 ```hunnu
 fn main() {
-    let тоо = to_int("42")
-    print(тоо + 1)
+    let numbers = [10, 20, 30, 40, 50]
+    print(numbers[0])
+    print(numbers[4])
+}
+```
 
-    let бодит = to_float("3.14")
-    print(бодит * 2)
+### Strings
 
-    let тэмдэгт = to_str(123)
-    print(тэмдэгт + "456")
+```hunnu
+fn main() {
+    let greeting = "Hello, "
+    let name = "World"
+    let message = greeting + name
+    print(message)
+    
+    let s = "Hunnu"
+    print(len(s))
 }
 ```
 
 ---
 
-## Бүтэц
+## Project Structure
 
 ```
 hunnu-lang/
 ├── compiler/
-│   ├── lexer/          # токенчлог
-│   ├── parser/        # парсер
-│   ├── ast/          # AST төрөл
-│   ├── interpreter/  # ажиллуулах
-│   └── vm/          # bytecode + VM
-├── cli/              # команд мөр
-├── examples/         # жишээ
+│   ├── lexer/          # Tokenizer
+│   ├── parser/        # Parser (AST)
+│   ├── ast/          # AST node definitions
+│   ├── interpreter/  # Tree-walk interpreter
+│   └── vm/          # Bytecode + VM
+├── cli/              # CLI
+├── examples/         # Example code
 └── CMakeLists.txt
 ```
 
 ---
 
-## Төлөвлөгөө
+## Roadmap
 
-### ✅ Phase 1: Үндсэн засварууд
-- хувьсагч хүрээлэл
-- break/continue
-- массив хязгаар
-- санах ой засах
+See [`plan.md`](plan.md) for the full development roadmap.
 
-### ✅ Phase 2: Түлхүүр онцлогууд
-- += -= *= /=
-- else if
-- бодит тоо
-- null/nil
-
-### ✅ Phase 3: Стандарт сан
-- input()
-- to_int/to_float/to_str
-- --debug
-
-### ✅ Phase 4: Bytecode + VM
-- компилятор
-- виртуал машин
+### Completed
+- ✅ Phase 1: Foundation Fixes (scoping, break/continue, memory fixes)
+- ✅ Phase 2: Core Language Features (compound assignment, else if, floats, null/nil, string escapes)
+- ✅ Phase 3: Standard Library & Dev Experience (input, to_str/to_int/to_float, --debug)
+- ✅ Phase 4: Bytecode Compiler + VM (build command, --vm flag)
 
 ---
 
-MIT ✅ 2025 Хүмүүн
+## License
+
+MIT

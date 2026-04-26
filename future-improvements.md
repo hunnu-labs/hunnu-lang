@@ -1,104 +1,83 @@
-# Дараагийн алхсууд
+# Future Improvements
 
-> Хүмүүн хэлний боломжит сайжруулалтууд.
-
----
-
-## Хэлний онцлогууд
-
-### Түлхүүр
-
-| онцлог | статус |
-|---------|--------|
-| ✅ Bytecode + VM | дууссан |
-| Модуль/импорт | |
-| Стандарт сан | |
-
-### Дунд
-
-| онцлог | статус |
-|---------|--------|
-| Struct/Record | |
-| Pattern matching | |
-| ADT (Sum төрөл) | |
-
-### Алсын хараа
-
-| онцлог | статус |
-|---------|--------|
-| Self-hosting | |
-| JIT | |
-| AOT | |
+> Potential enhancements for Hunnu beyond the MVP.
 
 ---
 
-## Жишээ
+## Language Features
 
-### Struct
+### High Priority
+- **Bytecode compiler + VM** ✅ (DONE)
+- **Modules / import system** — split code across files
+- **Standard library** — built-in functions for common tasks
+
+### Medium Priority
+- **Structs / records** — grouping related data
 
 ```hunnu
-type Цэг = { x: int, y: int }
-let p = Цэг { x: 5, y: 10 }
+type Point = { x: int, y: int }
+let p = Point { x: 5, y: 10 }
 ```
 
-### Pattern matching
+- **Pattern matching** — destructuring and case analysis
 
 ```hunnu
-match утга {
-    [] -> "хоосон"
-    [ толстой, ... бусад] -> "эхний: " + str(толстой)
+match value {
+    [] -> "empty"
+    [head, ...rest] -> "first: " + str(head)
 }
 ```
 
-### ADT
+- **Algebraic Data Types (ADTs)** — sum types
 
 ```hunnu
-type Болж[T] = Болсон(T) | Юугүй
-type Жагсаалт[T] = Хоолой(T, Жагсаалт[T]) | Хоосон
+type Maybe[T] = Just(T) | Nothing
+type List[T] = Cons(T, List[T]) | Nil
 ```
 
----
-
-## Хэрэгжлэл
-
-### Түлхүүр
-
-| онцлог | статус |
-|---------|--------|
-| Оновчлол | |
-| Алдааны мэссэж | |
-| 디bugger | |
-
-### Дунд
-
-| онцлог | статус |
-|---------|--------|
-| REPL | |
-| Багц менеджер | |
-| LSP сервер | |
+### Lower Priority
+- **Pipe operator** — function chaining
+- **Lazy evaluation** — deferred computation
+- **Structural types** — duck typing
+- **Gradual typing** — optional type annotations
+- **Protocols/Traits** — interface definitions
 
 ---
 
-## Тест
+## Implementation
 
-- Юнит тест
-- Интеграц тест
-- Бенчмарк
-- Fuzzing
+### High Priority
+- **Optimization** — performance improvements
+- **Error messages** — better diagnostics with line numbers
+- **Debugger** — stepping through code
+
+### Medium Priority
+- **REPL** — interactive console
+- **Package manager** — dependency management
+- **IDE integration** — LSP server
+
+### Lower Priority
+- **Self-hosting** — implement compiler in Hunnu
+- **JIT compilation** — just-in-time code generation
+- **AOT compilation** — ahead-of-time binary output
 
 ---
 
-## Бичиг
+## Infrastructure
 
-- Хэлний тодорхойлолт
-- API бичиг
-- Зааварчилгаа
-- Жишээ цуглуулага
+### Testing
+- Unit tests for compiler phases
+- Integration tests for language features
+- Benchmark suite
+- Fuzzing for edge cases
 
----
+### Documentation
+- Language specification
+- API documentation
+- Tutorial for beginners
+- Cookbook with recipes
 
-## Төрөлжүүлэх
-
-- Стандарт сангийн хувь нэмэр
-- Хэрэгслийн экосистем
-- Багц сан
+### Community
+- Standard library contributions
+- Tooling ecosystem
+- Package registry
