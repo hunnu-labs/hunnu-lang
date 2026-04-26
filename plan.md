@@ -77,28 +77,76 @@ Hunnu is a lightweight programming language written in C. It supports both **Eng
 
 ## Next Steps
 
-### High Priority
+### High Priority (Tomorrow)
 
-| Feature | Description |
-|---------|-------------|
-| Modules/`import` | Split code across files |
-| Standard library | Common functions |
+| Feature | Description | Difficulty |
+|--------|-------------|------------|
+| Array memory fix | Deep copy arrays, proper free | Medium |
+| `import` statement | External file loading | Medium |
+| Error line numbers | Show source line in errors | Easy |
 
 ### Medium Priority
 
-| Feature | Description |
-|---------|-------------|
-| Structs/Records | `type Point = { x: int, y: int }` |
-| Pattern matching | `match x { ... }` |
-| ADT (Sum types) | `type Maybe[T] = Just(T) \| Nothing` |
+| Feature | Description | Difficulty |
+|--------|-------------|------------|
+| Structs/Records | `type Point = { x: int, y: int }` | Hard |
+| `else if` chains | Multiple conditions | Easy |
+| Standard library | Common functions | Medium |
+| Pattern matching | `match x { ... }` | Hard |
 
 ### Long-term Vision
 
-| Feature | Description |
-|---------|-------------|
-| Self-hosting | Write compiler in Hunnu |
-| JIT | Just-in-time compilation |
-| AOT | Binary output |
+| Feature | Description | Difficulty |
+|--------|-------------|------------|
+| ADT (Sum types) | `type Maybe[T] = Just(T) \| Nothing` | Hard |
+| Self-hosting | Write compiler in Hunnu | Very Hard |
+| JIT compilation | Just-in-time execution | Very Hard |
+| AOT binary | Native binary output | Very Hard |
+
+---
+
+## Technical Debt (Known Issues)
+
+| Issue | Location | Severity |
+|--------|----------|----------|
+| Array shallow copy | value_copy() | Medium |
+| Double-free in arrays | VM execution | Medium |
+| No garbage collection | interpreter.c | High |
+
+---
+
+## Tomorrow's Tasks
+
+### 1. Array Memory Fix
+```
+Priority: High
+Files: interpreter.c, vm.c
+Steps:
+- Fix value_copy() to deep copy array elements
+- Fix VM OP_CREATE_ARRAY to avoid double-free
+- Add array element cleanup in value_free()
+```
+
+### 2. Import Statement
+```
+Priority: High  
+Files: parser.c, lexer.c, cli/main.c
+Steps:
+- Add TOKEN_IMPORT to token.h
+- Add keyword "import" / "импорт"
+- Parse import statement: import "module.hn"
+- Load and concatenate source files
+```
+
+### 3. Error Line Numbers
+```
+Priority: Easy
+Files: parser.c, interpreter.c
+Steps:
+- Pass source lines to AST nodes
+- Show line number in parse errors
+- Show line number in runtime errors
+```
 
 ---
 
