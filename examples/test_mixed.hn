@@ -1,0 +1,8 @@
+fn main() {
+    let тоо = 3
+    let num = 5
+    let нийлбэр = тоо + num
+    print(тоо)
+    print(num)
+    print(нийлбэр)
+}
