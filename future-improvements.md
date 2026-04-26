@@ -109,6 +109,105 @@ Support `\n`, `\t`, `\\`, `\"` escape sequences in string literals. Currently th
 
 ---
 
+## Language Design Philosophy
+
+### 18. Self-Hosting (Self-Implementability)
+**Idea:** A language should be able to implement itself — the compiler or interpreter written in its own language. This is the ultimate test of expressiveness and bootstrapping capability.
+
+**Approach:**
+- Once Hunnu is mature enough, rewrite the compiler/interpreter in Hunnu itself
+- Use this self-hosted version to compile the original, creating a trusted bootchain
+- Enables metaprogramming, macros, and advanced compiler transforms
+
+### 19. Polish Notation (Prefix Syntax)
+**Idea:** Add prefix/polish notation as an alternative syntax mode. `+ 5 3` instead of `5 + 3`. Makes the language homoiconic and easier to parse for metaprogramming.
+
+**Benefits:**
+- No operator precedence ambiguity — `+ * 2 3 5` is clearly `(2*3) + 5`
+- Uniform syntax simplifies the parser significantly
+- Easier to represent as AST directly — code is data
+- Opens door to Lisp-like macros and code generation
+
+**Syntax:**
+```
++ 5 3           # infix: 5 + 3
+* + 2 3 4       # infix: (2 + 3) * 4
+if > x 0 {
+    + x 1
+} else {
+    - x 1
+}
+```
+
+### 20. Functional Programming Features
+**Idea:** Lean into functional paradigm to make the language more expressive and elegant.
+
+**Features to consider:**
+- **Pattern matching** — Elixir-style `match` expressions with multiple clauses
+  ```
+  match x {
+      [] -> "empty list"
+      [head, ...rest] -> "head: " + str(head)
+  }
+  ```
+- **Algebraic Data Types (ADTs)** — Sum types and product types
+  ```
+  type Maybe[T] = Just(T) | Nothing
+  type List[T] = Cons(T, List[T]) | Nil
+  ```
+- **Guards** — Conditions in pattern matching
+  ```
+  fib(n) where n > 1 -> fib(n-1) + fib(n-2)
+  ```
+- **Lazy evaluation** — `lazy` keyword or thunk syntax for infinite streams
+- **Pipe operator** — `x |> f |> g` for function composition
+
+### 21. Flexible Type System
+**Idea:** Make types first-class and extensible, inspired by Elixir's protocol system, Lean/Coq's dependent types, and TypeScript's structural types.
+
+**Goals:**
+- **Compile-time safety** — Catch more errors before runtime (like Lean/Coq)
+- **Runtime flexibility** — Dynamically extend types and behavior (like Elixir)
+- **Theorem proving potential** — Dependent types for formal verification
+
+**Approach:**
+- **Structural types** — Types inferred from shape, not name
+  ```
+  let point = { x: 5, y: 10 }  # inferred as { x: int, y: int }
+  ```
+- **Protocols/Traits** — Define behavior for types, not types themselves
+  ```
+  protocol Printable {
+      fn format(self) -> string
+  }
+  ```
+- **Gradual typing** — Optional type annotations, inferred when omitted
+  ```
+  let x = 5          # inferred as int
+  let y: int = 5     # explicitly typed
+  ```
+- **Dependent types** — Types that depend on values (stretch goal)
+  ```
+  type Vec[T, n: int] = ...  # vector of length n
+  ```
+
+### 22. Error Handling Model
+**Idea:** Move away from exceptions toward more explicit error handling patterns.
+
+**Options to consider:**
+- **Result types** — Every fallible operation returns `Result[T, E]`
+  ```
+  let result = parse_int("42")
+  match result {
+      Ok(n) -> n * 2
+      Err(e) -> handle_error(e)
+  }
+  ```
+- **Pattern matching on errors** — Elixir-style with `?` operator or monadic syntax
+- **Supervision trees** — For fault-tolerant systems (inspired by Erlang/Elixir BEAM)
+
+---
+
 ## Refactoring Notes
 
 - `interpreter_execute_statement` and `interpreter_evaluate` overlap for `AST_ASSIGN` — both handle it. After scoped environments are added, unify into a single evaluation path.
