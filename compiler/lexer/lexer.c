@@ -123,24 +123,12 @@ int lexer_skip_comment(Lexer* lexer) {
 }
 
 TokenType lexer_check_keyword(const char* lexeme) {
-    if (lexeme[0] >= 'a' && lexeme[0] <= 'z') {
-        for (int i = 0; keyword_names[i] != NULL; i++) {
-            if (strcmp(lexeme, keyword_names[i]) == 0) {
-                return keyword_types[i];
-            }
+    for (int i = 0; keyword_names[i] != NULL; i++) {
+        if (strcmp(lexeme, keyword_names[i]) == 0) {
+            return keyword_types[i];
         }
     }
     return TOKEN_IDENT;
-}
-
-static int is_alpha_char(char c) {
-    if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_') {
-        return 1;
-    }
-    if ((c & 0x80) != 0) {
-        return 1;
-    }
-    return 0;
 }
 
 Token* lexer_read_identifier(Lexer* lexer) {
@@ -148,7 +136,7 @@ Token* lexer_read_identifier(Lexer* lexer) {
     int32_t start_line = lexer->line;
     int32_t start_column = lexer->column - 1;
     
-    while (is_alpha_char(lexer_peek(lexer)) || isdigit(lexer_peek(lexer))) {
+    while (isalnum(lexer_peek(lexer)) || lexer_peek(lexer) == '_') {
         lexer_advance(lexer);
     }
     
@@ -316,7 +304,7 @@ Token* lexer_next_token(Lexer* lexer) {
     
     char c = lexer_peek(lexer);
     
-    if (is_alpha_char(c) || c == '_') {
+    if (isalpha(c) || c == '_') {
         lexer_advance(lexer);
         return lexer_read_identifier(lexer);
     }
