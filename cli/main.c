@@ -3,6 +3,7 @@
 #include <string.h>
 #include "cli.h"
 #include "compiler/lexer/lexer.h"
+#include "compiler/version.h"
 #include "compiler/parser/parser.h"
 #include "compiler/interpreter/interpreter.h"
 #include "compiler/vm/compiler.h"
@@ -32,8 +33,8 @@ void print_usage(const char* prog_name) {
 }
 
 void print_version(void) {
-    printf("hunnu version 0.1.0 (MVP)\n");
-    printf("A simple, safe, and fast programming language\n");
+    printf("hunnu %s\n", version_get_string());
+    printf("%s\n", version_get_description());
 }
 
 int cmd_run(const char* filename, int debug, int use_vm) {
