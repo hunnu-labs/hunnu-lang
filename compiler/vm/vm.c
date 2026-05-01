@@ -342,7 +342,6 @@ static void vm_run(VM* vm) {
                 Value arr = vm_pop(vm);
                 if (arr.type != VALUE_ARRAY) {
                     value_free(&index);
-                    value_free(&arr);
                     Value v = value_create_none();
                     vm_push(vm, v);
                     break;
@@ -350,16 +349,41 @@ static void vm_run(VM* vm) {
                 int64_t idx = index.type == VALUE_FLOAT ? (int64_t)index.value.float_value : index.value.int_value;
                 if (idx < 0) idx += arr.array_length;
                 if (idx >= 0 && idx < (int64_t)arr.array_length) {
-                    Value elem = *arr.array_elements[idx];
+                    Value elem = value_copy(arr.array_elements[idx]);
                     value_free(&index);
-                    value_free(&arr);
                     vm_push(vm, elem);
                 } else {
                     value_free(&index);
-                    value_free(&arr);
                     Value v = value_create_none();
                     vm_push(vm, v);
                 }
+                break;
+            }
+            
+            case OP_SET_INDEX: {
+                Value val = vm_pop(vm);
+                Value index = vm_pop(vm);
+                Value arr = vm_pop(vm);
+                if (arr.type != VALUE_ARRAY) {
+                    value_free(&val);
+                    value_free(&index);
+                    Value v = value_create_none();
+                    vm_push(vm, v);
+                    break;
+                }
+                int64_t idx = index.type == VALUE_FLOAT ? (int64_t)index.value.float_value : index.value.int_value;
+                if (idx < 0) idx += arr.array_length;
+                if (idx >= 0 && idx < (int64_t)arr.array_length) {
+                    value_free(arr.array_elements[idx]);
+                    arr.array_elements[idx] = (Value*)malloc(sizeof(Value));
+                    *arr.array_elements[idx] = value_copy(&val);
+                    vm_push(vm, val);
+                } else {
+                    value_free(&val);
+                    Value v = value_create_none();
+                    vm_push(vm, v);
+                }
+                value_free(&index);
                 break;
             }
             

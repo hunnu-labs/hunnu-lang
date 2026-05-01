@@ -1,0 +1,7 @@
+[package]
+name = "hunnu-vm"
+version = "0.1.0"
+edition = "2021"
+description = "Bytecode virtual machine for the Hunnu programming language"
+
+[dependencies]

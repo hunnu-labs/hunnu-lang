@@ -74,6 +74,11 @@ static void compiler_compile_expression(Compiler* c, ASTNode* node) {
             break;
         }
         
+        case AST_EXPR_STMT: {
+            compiler_compile_expression(c, node->data.expr_stmt.expression);
+            break;
+        }
+        
         case AST_VAR_DECL: {
             c->local_count++;
             if (node->data.var_decl.initializer) {
@@ -229,6 +234,14 @@ static void compiler_compile_expression(Compiler* c, ASTNode* node) {
             compiler_compile_expression(c, node->data.index_expr.array);
             compiler_compile_expression(c, node->data.index_expr.index);
             compiler_emit_byte(c, OP_GET_INDEX);
+            break;
+        }
+        
+        case AST_INDEX_ASSIGN: {
+            compiler_compile_expression(c, node->data.index_assign.array);
+            compiler_compile_expression(c, node->data.index_assign.index);
+            compiler_compile_expression(c, node->data.index_assign.value);
+            compiler_emit_byte(c, OP_SET_INDEX);
             break;
         }
         

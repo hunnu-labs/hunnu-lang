@@ -219,6 +219,76 @@ ASTNode* parser_parse_declaration(Parser* parser) {
                             parser->previous->column);
     }
     
+    if (parser_match(parser, TOKEN_EXTERN)) {
+        parser_consume(parser, TOKEN_FN, "Expected 'fn' after 'extern'");
+        
+        if (!parser_check(parser, TOKEN_IDENT)) {
+            parser_error(parser, "Expected function name after 'extern fn'");
+            return NULL;
+        }
+        
+        char* name = strdup(parser->current->lexeme);
+        parser_advance(parser);
+        
+        char** params = NULL;
+        size_t param_count = 0;
+        
+        if (parser_match(parser, TOKEN_LPAREN)) {
+            while (!parser_check(parser, TOKEN_RPAREN)) {
+                if (param_count > 0) {
+                    parser_consume(parser, TOKEN_COMMA, "Expected ',' between parameters");
+                }
+                
+                if (!parser_check(parser, TOKEN_IDENT)) {
+                    parser_error(parser, "Expected parameter name");
+                    return NULL;
+                }
+                
+                params = (char**)realloc(params, sizeof(char*) * (param_count + 1));
+                params[param_count++] = strdup(parser->current->lexeme);
+                parser_advance(parser);
+            }
+            parser_consume(parser, TOKEN_RPAREN, "Expected ')' after parameters");
+        }
+        
+        /* Parse return type: -> int | -> str | -> void */
+        int returns_int = 1; /* default: returns int */
+        if (parser_match(parser, TOKEN_ARROW)) {
+            if (parser_check(parser, TOKEN_IDENT)) {
+                if (strcmp(parser->current->lexeme, "int") == 0) {
+                    returns_int = 1;
+                    parser_advance(parser);
+                } else if (strcmp(parser->current->lexeme, "void") == 0) {
+                    returns_int = 0;
+                    parser_advance(parser);
+                } else if (strcmp(parser->current->lexeme, "str") == 0) {
+                    returns_int = 2; /* str return - store as flag */
+                    parser_advance(parser);
+                } else {
+                    parser_error(parser, "Expected 'int', 'str', or 'void' after '->'");
+                    return NULL;
+                }
+            }
+        }
+        
+        /* Optional: from "library.so" */
+        char* lib_name = NULL;
+        if (parser_check(parser, TOKEN_IDENT) && strcmp(parser->current->lexeme, "from") == 0) {
+            parser_advance(parser);
+            if (parser_check(parser, TOKEN_STRING_LITERAL)) {
+                lib_name = strdup(parser->current->value.string_value);
+                parser_advance(parser);
+            } else {
+                parser_error(parser, "Expected string literal after 'from'");
+                return NULL;
+            }
+        }
+        
+        return ast_extern_fn_create(name, lib_name, name, params, param_count, returns_int,
+                                    parser->previous->line,
+                                    parser->previous->column);
+    }
+    
     return parser_parse_statement(parser);
 }
 
@@ -413,6 +483,11 @@ ASTNode* parser_parse_assignment(Parser* parser) {
             char* name = strdup(left->data.identifier.name);
             ASTNode* value = parser_parse_assignment(parser);
             return ast_assign_create(name, value, left->line, left->column);
+        } else if (left->type == AST_INDEX_EXPR) {
+            ASTNode* value = parser_parse_assignment(parser);
+            return ast_index_assign_create(left->data.index_expr.array,
+                                           left->data.index_expr.index,
+                                           value, left->line, left->column);
         }
     }
     
@@ -420,21 +495,48 @@ ASTNode* parser_parse_assignment(Parser* parser) {
         parser_match(parser, TOKEN_MINUS_ASSIGN) ||
         parser_match(parser, TOKEN_STAR_ASSIGN) ||
         parser_match(parser, TOKEN_SLASH_ASSIGN)) {
+        TokenType op = parser->previous->type;
+        TokenType binop;
+        switch (op) {
+            case TOKEN_PLUS_ASSIGN: binop = TOKEN_PLUS; break;
+            case TOKEN_MINUS_ASSIGN: binop = TOKEN_MINUS; break;
+            case TOKEN_STAR_ASSIGN: binop = TOKEN_STAR; break;
+            case TOKEN_SLASH_ASSIGN: binop = TOKEN_SLASH; break;
+            default: binop = TOKEN_PLUS;
+        }
+        ASTNode* right = parser_parse_assignment(parser);
+        
         if (left->type == AST_IDENTIFIER) {
             char* name = strdup(left->data.identifier.name);
-            TokenType op = parser->previous->type;
-            ASTNode* right = parser_parse_assignment(parser);
-            TokenType binop;
-            switch (op) {
-                case TOKEN_PLUS_ASSIGN: binop = TOKEN_PLUS; break;
-                case TOKEN_MINUS_ASSIGN: binop = TOKEN_MINUS; break;
-                case TOKEN_STAR_ASSIGN: binop = TOKEN_STAR; break;
-                case TOKEN_SLASH_ASSIGN: binop = TOKEN_SLASH; break;
-                default: binop = TOKEN_PLUS;
-            }
             ASTNode* current = ast_identifier_create(strdup(name), left->line, left->column);
             ASTNode* bin_expr = ast_binary_expr_create(binop, current, right, left->line, left->column);
             return ast_assign_create(name, bin_expr, left->line, left->column);
+        } else if (left->type == AST_INDEX_EXPR) {
+            ASTNode* arr_node = left->data.index_expr.array;
+            ASTNode* idx_node = left->data.index_expr.index;
+            ASTNode* current;
+            if (arr_node->type == AST_IDENTIFIER) {
+                current = ast_index_expr_create(
+                    ast_identifier_create(arr_node->data.identifier.name, arr_node->line, arr_node->column),
+                    ast_literal_create_int(idx_node->data.literal.value.int_value, idx_node->line, idx_node->column),
+                    left->line, left->column);
+            } else {
+                current = ast_index_expr_create(arr_node, idx_node, left->line, left->column);
+            }
+            ASTNode* bin_expr = ast_binary_expr_create(binop, current, right, left->line, left->column);
+            ASTNode* assign_arr;
+            if (arr_node->type == AST_IDENTIFIER) {
+                assign_arr = ast_identifier_create(arr_node->data.identifier.name, arr_node->line, arr_node->column);
+            } else {
+                assign_arr = arr_node;
+            }
+            ASTNode* assign_idx;
+            if (idx_node->type == AST_LITERAL) {
+                assign_idx = ast_literal_create_int(idx_node->data.literal.value.int_value, idx_node->line, idx_node->column);
+            } else {
+                assign_idx = idx_node;
+            }
+            return ast_index_assign_create(assign_arr, assign_idx, bin_expr, left->line, left->column);
         }
     }
     
@@ -602,6 +704,29 @@ ASTNode* parser_parse_primary(Parser* parser) {
             ASTNode** args = (ASTNode**)malloc(sizeof(ASTNode*) * 1);
             args[0] = arg_expr;
             return ast_call_expr_create("to_float", args, 1,
+                                  parser->previous->line,
+                                  parser->previous->column);
+        }
+        
+        /* Generic function call for any identifier followed by ( */
+        if (parser_match(parser, TOKEN_LPAREN)) {
+            ASTNode** args = (ASTNode**)malloc(sizeof(ASTNode*) * 4);
+            size_t arg_count = 0;
+            size_t arg_capacity = 4;
+            
+            if (!parser_check(parser, TOKEN_RPAREN)) {
+                args[arg_count++] = parser_parse_expression(parser);
+                while (parser_match(parser, TOKEN_COMMA)) {
+                    if (arg_count >= arg_capacity) {
+                        arg_capacity *= 2;
+                        args = (ASTNode**)realloc(args, sizeof(ASTNode*) * arg_capacity);
+                    }
+                    args[arg_count++] = parser_parse_expression(parser);
+                }
+            }
+            
+            parser_consume(parser, TOKEN_RPAREN, "Expected ')' after function arguments");
+            return ast_call_expr_create(name, args, arg_count,
                                   parser->previous->line,
                                   parser->previous->column);
         }

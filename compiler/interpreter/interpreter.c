@@ -7,6 +7,20 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <stdint.h>
+#include <dlfcn.h>
+
+#define MAX_EXTERN_FNS 64
+
+/** External function entry */
+typedef struct {
+    char* name;
+    char* symbol_name;
+    void* handle;
+    void* func_ptr;
+    int returns_int;
+    int param_count;
+} ExternFn;
 
 /** Variable scope */
 typedef struct Scope {
@@ -25,6 +39,8 @@ struct Interpreter {
     int has_break;
     int has_continue;
     int32_t current_line;
+    ExternFn extern_fns[MAX_EXTERN_FNS];
+    size_t extern_fn_count;
 };
 
 /**
@@ -76,7 +92,7 @@ static Value* scope_lookup_local(Scope* scope, const char* name) {
     return NULL;
 }
 
-static Value value_copy(const Value* val);
+Value value_copy(const Value* val);
 
 static void scope_define(Scope* scope, const char* name, Value value) {
     Value* existing = scope_lookup_local(scope, name);
@@ -107,6 +123,8 @@ Interpreter* interpreter_new(void) {
     interp->has_break = 0;
     interp->has_continue = 0;
     interp->current_line = 0;
+    interp->extern_fn_count = 0;
+    memset(interp->extern_fns, 0, sizeof(interp->extern_fns));
     return interp;
 }
 
@@ -170,12 +188,19 @@ void interpreter_clear_break_continue(Interpreter* interp) {
  */
 void interpreter_free(Interpreter* interp) {
     if (!interp) return;
+    for (size_t i = 0; i < interp->extern_fn_count; i++) {
+        free(interp->extern_fns[i].name);
+        free(interp->extern_fns[i].symbol_name);
+        if (interp->extern_fns[i].handle) {
+            dlclose(interp->extern_fns[i].handle);
+        }
+    }
     scope_free(interp->current_scope);
     free(interp);
 }
 
 /** Copies a value (deep copy) */
-static Value value_copy(const Value* val) {
+Value value_copy(const Value* val) {
     Value copy;
     copy.type = val->type;
     copy.has_value = val->has_value;
@@ -573,6 +598,46 @@ static Value interpreter_evaluate(Interpreter* interp, ASTNode* node) {
             return value_create_none();
         }
         
+        case AST_INDEX_ASSIGN: {
+            Value index_val = interpreter_evaluate(interp, node->data.index_assign.index);
+            Value assign_val = interpreter_evaluate(interp, node->data.index_assign.value);
+            Value* array_ptr = NULL;
+            Value array_val_copy;
+            
+            if (node->data.index_assign.array->type == AST_IDENTIFIER) {
+                array_ptr = scope_lookup(interp->current_scope, node->data.index_assign.array->data.identifier.name);
+            }
+            
+            if (!array_ptr) {
+                array_val_copy = interpreter_evaluate(interp, node->data.index_assign.array);
+                array_ptr = &array_val_copy;
+            }
+            
+            if (array_ptr->type == VALUE_ARRAY && index_val.type == VALUE_INT) {
+                int64_t idx = index_val.value.int_value;
+                if (idx >= 0 && (size_t)idx < array_ptr->array_length) {
+                    value_free(array_ptr->array_elements[idx]);
+                    array_ptr->array_elements[idx] = (Value*)malloc(sizeof(Value));
+                    *array_ptr->array_elements[idx] = value_copy(&assign_val);
+                    value_free(&index_val);
+                    Value result = value_copy(&assign_val);
+                    value_free(&assign_val);
+                    return result;
+                } else {
+                    fprintf(stderr, "Error at line %d: Index out of bounds (index %ld, length %zu)\n",
+                            interp->current_line, (long)idx, array_ptr->array_length);
+                    value_free(&index_val);
+                    value_free(&assign_val);
+                    return value_create_none();
+                }
+            }
+            
+            fprintf(stderr, "Error at line %d: Can only index into arrays\n", interp->current_line);
+            value_free(&index_val);
+            value_free(&assign_val);
+            return value_create_none();
+        }
+        
         case AST_CALL_EXPR: {
             char* name = node->data.call_expr.name;
             
@@ -647,6 +712,66 @@ static Value interpreter_evaluate(Interpreter* interp, ASTNode* node) {
                 return value_create_float(result);
             }
             
+            /* Check for extern function */
+            for (size_t i = 0; i < interp->extern_fn_count; i++) {
+                if (strcmp(interp->extern_fns[i].name, name) == 0) {
+                    ExternFn* ef = &interp->extern_fns[i];
+                    
+                    if (ef->func_ptr) {
+                        /* Build argument array - support int and string */
+                        int64_t args[8];
+                        Value arg_values[8];
+                        size_t arg_count = node->data.call_expr.arg_count;
+                        if (arg_count > 8) {
+                            fprintf(stderr, "Error at line %d: Too many arguments for extern function '%s'\n",
+                                    interp->current_line, name);
+                            return value_create_none();
+                        }
+                        
+                        for (size_t j = 0; j < arg_count; j++) {
+                            arg_values[j] = interpreter_evaluate(interp, node->data.call_expr.args[j]);
+                            if (arg_values[j].type == VALUE_STRING) {
+                                args[j] = (int64_t)(uintptr_t)arg_values[j].value.string_value;
+                            } else {
+                                args[j] = (int64_t)arg_values[j].value.int_value;
+                            }
+                        }
+                        
+                        /* Call the function based on argument count */
+                        int64_t result = 0;
+                        typedef int64_t (*fn0)(void);
+                        typedef int64_t (*fn1)(int64_t);
+                        typedef int64_t (*fn2)(int64_t, int64_t);
+                        typedef int64_t (*fn3)(int64_t, int64_t, int64_t);
+                        typedef int64_t (*fn4)(int64_t, int64_t, int64_t, int64_t);
+                        
+                        switch (arg_count) {
+                            case 0: result = ((fn0)ef->func_ptr)(); break;
+                            case 1: result = ((fn1)ef->func_ptr)(args[0]); break;
+                            case 2: result = ((fn2)ef->func_ptr)(args[0], args[1]); break;
+                            case 3: result = ((fn3)ef->func_ptr)(args[0], args[1], args[2]); break;
+                            case 4: result = ((fn4)ef->func_ptr)(args[0], args[1], args[2], args[3]); break;
+                            default:
+                                fprintf(stderr, "Error at line %d: Extern function '%s' has too many args\n",
+                                        interp->current_line, name);
+                                for (size_t j = 0; j < arg_count; j++) value_free(&arg_values[j]);
+                                return value_create_none();
+                        }
+                        
+                        /* Free argument values */
+                        for (size_t j = 0; j < arg_count; j++) {
+                            value_free(&arg_values[j]);
+                        }
+                        
+                        return value_create_int(result);
+                    } else {
+                        fprintf(stderr, "Error at line %d: Extern function '%s' not loaded\n",
+                                interp->current_line, name);
+                        return value_create_none();
+                    }
+                }
+            }
+            
             fprintf(stderr, "Error at line %d: Unknown function '%s'\n", interp->current_line, name);
             return value_create_none();
         }
@@ -713,6 +838,46 @@ static void interpreter_execute_statement(Interpreter* interp, ASTNode* node) {
                 interpreter_execute_block_scoped(interp, node->data.fn_decl.body);
             }
             break;
+        
+        case AST_EXTERN_FN: {
+            if (interp->extern_fn_count >= MAX_EXTERN_FNS) {
+                fprintf(stderr, "Error at line %d: Too many extern declarations\n", node->line);
+                break;
+            }
+            
+            ExternFn* ef = &interp->extern_fns[interp->extern_fn_count];
+            ef->name = strdup(node->data.extern_fn.name);
+            ef->symbol_name = strdup(node->data.extern_fn.symbol_name);
+            ef->returns_int = node->data.extern_fn.returns_int;
+            ef->param_count = (int)node->data.extern_fn.param_count;
+            ef->handle = NULL;
+            ef->func_ptr = NULL;
+            
+            /* Load library */
+            if (node->data.extern_fn.lib_name) {
+                ef->handle = dlopen(node->data.extern_fn.lib_name, RTLD_LAZY);
+            } else {
+                ef->handle = dlopen(NULL, RTLD_LAZY);
+            }
+            
+            if (!ef->handle) {
+                fprintf(stderr, "Error at line %d: Cannot load library: %s\n", node->line, dlerror());
+                break;
+            }
+            
+            /* Resolve symbol */
+            ef->func_ptr = dlsym(ef->handle, ef->symbol_name);
+            if (!ef->func_ptr) {
+                fprintf(stderr, "Error at line %d: Cannot find symbol '%s': %s\n",
+                        node->line, ef->symbol_name, dlerror());
+                dlclose(ef->handle);
+                ef->handle = NULL;
+                break;
+            }
+            
+            interp->extern_fn_count++;
+            break;
+        }
         
         case AST_IF_STMT: {
             Value condition = interpreter_evaluate(interp, node->data.if_stmt.condition);
@@ -831,6 +996,29 @@ static void interpreter_execute_statement(Interpreter* interp, ASTNode* node) {
         case AST_ASSIGN: {
             Value value = interpreter_evaluate(interp, node->data.assign.value);
             scope_define(interp->current_scope, node->data.assign.name, value);
+            break;
+        }
+        
+        case AST_INDEX_ASSIGN: {
+            Value arr = interpreter_evaluate(interp, node->data.index_assign.array);
+            Value idx_val = interpreter_evaluate(interp, node->data.index_assign.index);
+            Value val = interpreter_evaluate(interp, node->data.index_assign.value);
+            
+            if (arr.type == VALUE_ARRAY && idx_val.type == VALUE_INT) {
+                int64_t idx = idx_val.value.int_value;
+                if (idx >= 0 && (size_t)idx < arr.array_length) {
+                    value_free(arr.array_elements[idx]);
+                    arr.array_elements[idx] = (Value*)malloc(sizeof(Value));
+                    *arr.array_elements[idx] = value_copy(&val);
+                } else {
+                    fprintf(stderr, "Error at line %d: Index out of bounds (index %ld, length %zu)\n",
+                            interp->current_line, (long)idx, arr.array_length);
+                }
+            }
+            
+            value_free(&arr);
+            value_free(&idx_val);
+            value_free(&val);
             break;
         }
         

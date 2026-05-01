@@ -32,7 +32,9 @@ typedef enum {
     AST_ASSIGN,
     AST_ARRAY_EXPR,
     AST_INDEX_EXPR,
-    AST_STRING_CONCAT
+    AST_INDEX_ASSIGN,
+    AST_STRING_CONCAT,
+    AST_EXTERN_FN,
 } ASTNodeType;
 
 /** AST node structure */
@@ -158,11 +160,28 @@ typedef struct ASTNode {
             struct ASTNode* index;
         } index_expr;
         
+        /** Array index assignment */
+        struct {
+            struct ASTNode* array;
+            struct ASTNode* index;
+            struct ASTNode* value;
+        } index_assign;
+        
         /** String concatenation */
         struct {
             struct ASTNode* left;
             struct ASTNode* right;
         } string_concat;
+        
+        /** External function declaration */
+        struct {
+            char* name;           /* Hunnu function name */
+            char* lib_name;       /* Library name (e.g., "libc.so.6" or NULL) */
+            char* symbol_name;    /* C symbol name (e.g., "puts") */
+            char** param_names;   /* Parameter names */
+            size_t param_count;
+            int returns_int;      /* 1 if returns int, 0 if void */
+        } extern_fn;
     } data;
 } ASTNode;
 
@@ -190,7 +209,11 @@ ASTNode* ast_call_expr_create(const char* name, ASTNode** args, size_t arg_count
 ASTNode* ast_assign_create(const char* name, ASTNode* value, int32_t line, int32_t column);
 ASTNode* ast_array_expr_create(ASTNode** elements, size_t count, int32_t line, int32_t column);
 ASTNode* ast_index_expr_create(ASTNode* array, ASTNode* index, int32_t line, int32_t column);
+ASTNode* ast_index_assign_create(ASTNode* array, ASTNode* index, ASTNode* value, int32_t line, int32_t column);
 ASTNode* ast_string_concat_create(ASTNode* left, ASTNode* right, int32_t line, int32_t column);
+ASTNode* ast_extern_fn_create(const char* name, const char* lib_name, const char* symbol_name,
+                               char** param_names, size_t param_count, int returns_int,
+                               int32_t line, int32_t column);
 
 void ast_free(ASTNode* node);
 void ast_print(ASTNode* node, int indent);

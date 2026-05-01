@@ -1,12 +1,23 @@
-# Hunnu Language — Development Plan
+# Hunnu Language — 6-Month Development Plan
 
-> A living document tracking the state, priorities, and vision for Hunnu.
+> May 2026 – October 2026
+> A focused roadmap from interpreted language to native binary compiler.
+
+---
+
+## Vision
+
+Hunnu is a lightweight, bilingual (English/Mongolian) programming language with an ambitious long-term goal:
+
+1. **Systems programming** — write a Linux-like kernel
+2. **Scientific computing** — numpy-like numerical packages
+3. **Machine learning** — native ML framework with GPU support
+
+The path: C interpreter → Rust VM → AOT compiler → Kernel + ML ecosystem.
 
 ---
 
 ## Features
-
-Hunnu is a lightweight programming language written in C. It supports both **English** and **Mongolian** (Cyrillic) keywords.
 
 ### Working Features
 
@@ -14,35 +25,67 @@ Hunnu is a lightweight programming language written in C. It supports both **Eng
 |---------|---------|-----------|
 | Variables | `let x = 5` | `хувьсагч x = 5` |
 | Functions | `fn add(a, b) { return a + b }` | `функц нэмэх(a, b) { буцаах a + b }` |
-| If/else | `if x > 0 { ... } else { ... }` | `хэрвээ x > 5 { ... } бусад { ... }` |
+| If/else | `if x > 0 { ... } else { ... }` | `хэрвээ x > 0 { ... } бусад { ... }` |
 | While loop | `while i < 10 { ... }` | `давталт i < 10 { ... }` |
-| For loop | `for let i = 0; i < 3; i = i + 1 { ... }` | `тооллого хувьсагч i = 0; i < 3; i = i + 1 { ... }` |
+| For loop | `for let i = 0; i < 3; i = i + 1 { ... }` | `тооллого хувьсагч i = 0; i < 3; i = i + i + 1 { ... }` |
 | Print | `print("Hello")` | `хэвлэх("Сайн уу")` |
 | Return | `return value` | `буцаах утга` |
 | Break | `break` | `зогсоох` |
 | Continue | `continue` | `үргэлжлүүлэх` |
 | null/nil | `null`, `nil` | `хоосон` |
+| Arrays | `let arr = [1, 2, 3]` | `жагсаалт arr = [1, 2, 3]` |
+| Index assignment | `arr[0] = 5` | `arr[0] = 5` |
+| Imports | `import "lib.hn"` | `импорт "lib.hn"` |
+| FFI | `extern fn puts(s: str) -> int from "libc.so"` | `гаднах fn puts(s: str) -> int from "libc.so"` |
 
 ---
 
 ## CLI Usage
 
 ```bash
-./hunnu run examples/main.hn
-./hunnu run examples/main.hn --vm
-./hunnu build examples/main.hn
-./hunnu run examples/main.hn --debug
+./hunnu run examples/main.hn          # Interpreter
+./hunnu run examples/main.hn --vm     # C VM
+./hunnu run examples/main.hn --debug  # Show tokens + AST
+./hunnu build examples/main.hn        # Show bytecode
+./hunnu tokens examples/main.hn       # Lexer debug
+./hunnu ast examples/main.hn          # Parser debug
 ```
 
 ---
 
-## Phases
+## 6-Month Timeline
+
+```
+Month 1 (May 2026)    Month 2 (Jun 2026)    Month 3 (Jul 2026)
+┌───────────────┐     ┌───────────────┐     ┌───────────────┐
+│  Rust VM      │     │  FFI Ecosystem │     │  AOT Compiler │
+│  GC / Memory  │  →  │  Standard Lib  │  →  │  Structs      │
+│  User Fn Calls│     │  Python Bind   │     │  Pointers     │
+│  ──────────── │     │  ────────────  │     │  ──────────── │
+│  Goal: Stable │     │  Goal: Usable  │     │  Goal: Native │
+│  Rust Runtime │     │  Language      │     │  Binaries     │
+└───────────────┘     └───────────────┘     └───────────────┘
+
+Month 4 (Aug 2026)    Month 5 (Sep 2026)    Month 6 (Oct 2026)
+┌───────────────┐     ┌───────────────┐     ┌───────────────┐
+│  Generics     │     │  no_std / Bare │     │  Self-Hosting │
+│  Traits       │  →  │  Metal Target  │  →  │  Package Mgr  │
+│  Modules      │     │  Boot Example  │     │  0.1 Release  │
+│  ──────────── │     │  ────────────  │     │  ──────────── │
+│  Goal: Type   │     │  Goal: Kernel  │     │  Goal: v0.1  │
+│  System       │     │  Prototype     │     │  Usable Lang  │
+└───────────────┘     └───────────────┘     └───────────────┘
+```
+
+---
+
+## Completed Phases
 
 ### Phase 1: Foundation Fixes ✅
 
 | # | Feature | Description |
-|----|---------|-------------|
-| 1 | Variable scoping (scope stack) | Block-scoped variables |
+|---|---------|-------------|
+| 1 | Variable scoping | Block-scoped variables with scope stack |
 | 2 | break/continue | Loop control flow |
 | 3 | Array bounds checking | `arr[i]` IndexError |
 | 4 | String memory safety | Dangling pointer fixes |
@@ -50,8 +93,8 @@ Hunnu is a lightweight programming language written in C. It supports both **Eng
 ### Phase 2: Core Language Features ✅
 
 | # | Feature | Description |
-|----|---------|-------------|
-| 1 | Compound assignment: `+=`, `-=`, etc | `x += 1` |
+|---|---------|-------------|
+| 1 | Compound assignment | `x += 1`, `x -= 1`, etc. |
 | 2 | `else if` chains | Multiple conditions |
 | 3 | Floating-point numbers | `3.14`, `2.0` |
 | 4 | `null`/`nil` literal | `let x = null` |
@@ -59,7 +102,7 @@ Hunnu is a lightweight programming language written in C. It supports both **Eng
 ### Phase 3: Standard Library + DX ✅
 
 | # | Feature | Description |
-|----|---------|-------------|
+|---|---------|-------------|
 | 1 | `input()` | Read from stdin |
 | 2 | `to_int()`, `to_float()`, `to_str()` | Type conversions |
 | 3 | `--debug` flag | Show tokens and AST |
@@ -67,130 +110,271 @@ Hunnu is a lightweight programming language written in C. It supports both **Eng
 ### Phase 4: Bytecode + VM ✅
 
 | # | Feature | Description |
-|----|---------|-------------|
+|---|---------|-------------|
 | 1 | Bytecode compiler | AST → bytecode |
-| 2 | Virtual Machine | Bytecode execution |
+| 2 | Virtual Machine (C) | Bytecode execution |
 | 3 | `build` command | Output bytecode |
 | 4 | `--vm` flag | Run with VM |
+| 5 | Import statement | `import "lib.hn"` with recursive loading |
+| 6 | Error line numbers | Runtime errors show source line |
+| 7 | Array deep copy | Proper copy and free semantics |
+| 8 | Index assignment | `arr[0] = 5` and `arr[i] += 1` |
 
 ---
 
-## Next Steps
+## Month 1 (May 2026): Rust VM Stabilization
 
-### High Priority (Tomorrow)
+**Goal:** Replace C VM with Rust VM as primary runtime, add user-defined functions.
 
-| Feature | Description | Difficulty |
-|--------|-------------|------------|
-| Garbage collection | Basic mark-and-sweep or ref counting | Hard |
-| `len()` for strings | `len("hello")` returns char count | Easy |
-| Array index assignment | `arr[0] = 5` | Medium |
-| `--vm` function support | User-defined functions in VM | Hard |
+| # | Feature | Description | Files | Difficulty |
+|---|---------|-------------|-------|------------|
+| 1 | Rust VM bytecode wire | Pipe C compiler output → Rust VM | `vm-rust/`, `cli/main.c` | Medium |
+| 2 | User-defined functions (VM) | Call frames, OP_CALL, OP_RETURN, OP_DEFINE_FN | `vm-rust/vm.rs` | Hard |
+| 3 | VM function calls (C) | VM support for user-defined fn calls | `compiler/vm/vm.c` | Hard |
+| 4 | GC: reference counting | Automatic memory management | `vm-rust/`, `compiler/` | Hard |
+| 5 | String concatenation in VM | `OP_ADD` for strings | `vm-rust/vm.rs` | Easy |
+| 6 | Rust VM tests | Bytecode round-trip tests | `vm-rust/tests/` | Medium |
 
-### Medium Priority
-
-| Feature | Description | Difficulty |
-|--------|-------------|------------|
-| Structs/Records | `type Point = { x: int, y: int }` | Hard |
-| `else if` chains | Multiple conditions | ~~Easy~~ ✅ Done |
-| Standard library | Common functions | Medium |
-| Pattern matching | `match x { ... }` | Hard |
-
-### Long-term Vision
-
-| Feature | Description | Difficulty |
-|--------|-------------|------------|
-| ADT (Sum types) | `type Maybe[T] = Just(T) \| Nothing` | Hard |
-| Self-hosting | Write compiler in Hunnu | Very Hard |
-| JIT compilation | Just-in-time execution | Very Hard |
-| AOT binary | Native binary output | Very Hard |
+**Milestone:** `./hunnu run --vm-rust` executes full Hunnu programs with functions.
 
 ---
 
-## Technical Debt (Known Issues)
+## Month 2 (June 2026): FFI Ecosystem + Standard Library
 
-| Issue | Location | Severity |
-|--------|----------|----------|
-| No garbage collection | interpreter.c | High |
-| VM user-defined functions | vm.c, vm/compiler.c | Medium |
-| Array index assignment | VM missing OP_SET_INDEX | Medium |
-| Lexer token type strings | token_type_to_string() inaccurate | Low |
-| Parser uses while keyword for multiple tokens | Debug output misleading | Low |
+**Goal:** Make Hunnu practically useful with libraries and Python integration.
+
+| # | Feature | Description | Files | Difficulty |
+|---|---------|-------------|-------|------------|
+| 1 | libc.hn standard module | Pre-built C FFI bindings (puts, malloc, strlen, etc.) | `stdlib/libc.hn` | Easy |
+| 2 | FFI string returns | `extern fn` returning `str` | `compiler/` | Medium |
+| 3 | FFI float arguments | Support float params in extern calls | `compiler/` | Easy |
+| 4 | Rust FFI boundary | Call Rust `#[no_mangle]` fns from Hunnu | `vm-rust/ffi.rs` | Medium |
+| 5 | Python bindings (PyO3) | `import hunnu` in Python, execute `.hn` | `bindings/python/` | Medium |
+| 6 | Error handling | `try`/`catch` or `Result`-style errors | `compiler/` | Hard |
+| 7 | Module system | `import std.math`, `import std.io` | `stdlib/`, `cli/` | Medium |
+
+**Milestone:** `import std.io; std.io.println("Hello from stdlib!")`
 
 ---
 
-## Tomorrow's Tasks
+## Month 3 (July 2026): AOT Compiler Foundation
 
-### 1. Garbage Collection
+**Goal:** Compile Hunnu to native binaries via LLVM.
+
+| # | Feature | Description | Files | Difficulty |
+|---|---------|-------------|-------|------------|
+| 1 | Frontend in Rust | Port lexer + parser to Rust | `compiler-rust/` | Hard |
+| 2 | LLVM IR codegen | AST → LLVM IR basic blocks | `compiler-rust/codegen.rs` | Very Hard |
+| 3 | `hunnu compile` command | Output ELF binary | `cli/` | Medium |
+| 4 | Structs / Records | `type Point = { x: int, y: int }` | `compiler/` | Medium |
+| 5 | Field access | `point.x`, `point.y` | `compiler/` | Medium |
+| 6 | Pointers | `let p = &x`, `*p` | `compiler/` | Hard |
+
+**Milestone:** `hunnu compile main.hn -o main && ./main` prints "Hello".
+
+---
+
+## Month 4 (August 2026): Advanced Type System
+
+**Goal:** Generics, traits, and modules for expressive code.
+
+| # | Feature | Description | Files | Difficulty |
+|---|---------|-------------|-------|------------|
+| 1 | Enums / ADTs | `type Result[T] = Ok(T) | Err(String)` | `compiler/` | Hard |
+| 2 | Pattern matching | `match x { Ok(v) => ..., Err(e) => ... }` | `compiler/` | Hard |
+| 3 | Generics | `fn map[T, U](arr: [T], f: fn(T) -> U) -> [U]` | `compiler/` | Very Hard |
+| 4 | Traits / Interfaces | `trait Eq { fn eq(self, other: Self) -> bool }` | `compiler/` | Very Hard |
+| 5 | `unsafe` blocks | Explicit unsafe code regions | `compiler/` | Medium |
+| 6 | Module system | Public/private visibility, `mod` keyword | `compiler/` | Medium |
+
+**Milestone:** `fn map[T](arr: [T]) -> [T] { ... }` with trait bounds.
+
+---
+
+## Month 5 (September 2026): no_std + Bare Metal
+
+**Goal:** Run Hunnu without OS — boot loader and kernel prototype.
+
+| # | Feature | Description | Files | Difficulty |
+|---|---------|-------------|-------|------------|
+| 1 | `no_std` mode | Compile without libc | `compiler-rust/` | Hard |
+| 2 | Bare-metal target | x86_64-unknown-none | `compiler-rust/` | Hard |
+| 3 | Boot loader | Multiboot2 / UEFI entry point | `kernel/boot.rs` | Very Hard |
+| 4 | Memory manager | Physical page allocator | `kernel/alloc.rs` | Very Hard |
+| 5 | VGA text buffer | `print!` to screen | `kernel/vga.rs` | Medium |
+| 6 | Interrupt handling | IDT, PIC, keyboard IRQ | `kernel/interrupts.rs` | Very Hard |
+| 7 | Minimal kernel | Boot, print "Hunnu kernel booted", halt | `kernel/main.rs` | Very Hard |
+
+**Milestone:** QEMU boots Hunnu kernel, prints "Hello from Hunnu!".
+
+---
+
+## Month 6 (October 2026): Self-Hosting + Release
+
+**Goal:** Hunnu compiler written in Hunnu, package manager, v0.1 release.
+
+| # | Feature | Description | Files | Difficulty |
+|---|---------|-------------|-------|------------|
+| 1 | Package manager | `hunnu install`, `hunnu new`, dependency resolution | `cli/pkg.rs` | Hard |
+| 2 | Standard library v1 | `std.io`, `std.math`, `std.array`, `std.string` | `stdlib/` | Medium |
+| 3 | Self-hosting attempt | Write Hunnu lexer in Hunnu | `self/lexer.hn` | Very Hard |
+| 4 | Documentation | Language spec, tutorial, API docs | `docs/` | Medium |
+| 5 | CI/CD | GitHub Actions: build, test, lint | `.github/workflows/` | Easy |
+| 6 | Benchmark suite | Performance comparison with Python, Lua | `benchmarks/` | Medium |
+| 7 | v0.1 release | First tagged release on GitHub | — | Medium |
+
+**Milestone:** `hunnu new my-project && hunnu run` produces working app.
+
+---
+
+## Architecture Evolution
+
 ```
-Priority: High
-Files: interpreter.c, interpreter.h
-Steps:
-- Implement reference counting on Value struct
-- Increment ref count on value_copy()
-- Decrement ref count on value_free()
-- Free string/array when ref count reaches 0
-- Handle circular references (optional: mark-and-sweep)
+Month 1-2               Month 3-4               Month 5-6
+┌──────────────┐        ┌──────────────┐        ┌──────────────┐
+│  .hn source  │        │  .hn source  │        │  .hn source  │
+└──────┬───────┘        └──────┬───────┘        └──────┬───────┘
+       │                       │                       │
+┌──────▼───────┐        ┌──────▼───────┐        ┌──────▼───────┐
+│  Rust Lexer  │        │  Rust Lexer  │        │  Rust Lexer  │
+│  Rust Parser │        │  Rust Parser │        │  Rust Parser │
+│  Rust VM     │   →    │  LLVM Codegen│   →    │  LLVM Codegen│
+│  FFI/dlopen  │        │  Structs     │        │  no_std      │
+│  Python/PyO3 │        │  Generics    │        │  ┌────────┐  │
+│              │        │  Traits      │        │  │Kernel  │  │
+│              │        │  .elf binary │        │  │Pkg Mgr │  │
+│              │        │              │        │  │v0.1    │  │
+│              │        │              │        │  └────────┘  │
+└──────────────┘        └──────────────┘        └──────────────┘
 ```
 
-### 2. Array Index Assignment
-```
-Priority: High  
-Files: vm/vm.c, vm/compiler.c, parser/parser.c
-Steps:
-- Parse: arr[expr] = expr (AST_INDEX_ASSIGN node)
-- Add OP_SET_INDEX opcode
-- Implement in VM: pop value, pop index, pop array, set element
-- Add bounds checking
-```
+---
 
-### 3. len() for Strings
-```
-Priority: Easy
-Files: interpreter.c
-Steps:
-- Already implemented in interpreter (len returns string length)
-- Verify: len("hello") should return 5
-- Add test case
-```
+## Technical Debt (Current)
 
-### 4. VM User-Defined Functions
-```
-Priority: High
-Files: vm/compiler.c, vm/vm.c
-Steps:
-- Compile fn declarations to bytecode (OP_DEFINE_FN)
-- Add OP_CALL_FN opcode for user function calls
-- Implement call frame stack in VM
-- Handle parameters and return values
-```
+| Issue | Location | Severity | Fix Plan |
+|-------|----------|----------|----------|
+| No garbage collection | interpreter.c | High | Month 1: ref counting in Rust VM |
+| VM user-defined functions | vm.c, vm/compiler.c | High | Month 1: call frames |
+| Global-only variables | vm/compiler.c | Medium | Month 1: scope stack in VM |
+| Identifier resolution | vm/compiler.c | Medium | Month 1: symbol table |
+| Memory leaks in VM | vm.c | Medium | Month 1: Rust ownership model |
+| No type checking | parser.c | Low | Month 2: type checker pass |
+| Hardcoded builtin names | vm.c | Low | Month 2: builtin registry |
+
+---
+
+## Language Design Goals
+
+### For Systems Programming
+- Predictable performance (no hidden allocations)
+- `unsafe` blocks for low-level operations
+- Manual memory management option (no GC)
+- Inline assembly support
+- No runtime dependency for kernel mode
+
+### For Scientific Computing
+- First-class tensor/n-dimensional array type
+- Operator overloading (`a @ b` for matrix multiply)
+- FFI to BLAS/LAPACK/CuBLAS
+- SIMD vectorization
+- Complex number support
+
+### For Machine Learning
+- Automatic differentiation (`grad(f)(x)`)
+- GPU compute shaders
+- Neural network primitives
+- Training loop abstractions
+- Model serialization
+
+---
+
+## Technology Choices
+
+| Component | Current | Month 3+ | Rationale |
+|-----------|---------|----------|-----------|
+| Lexer/Parser | C | Rust | Safer, better error handling |
+| Interpreter | C (tree-walk) | Deprecated | VM is faster |
+| VM | C + Rust prototype | Rust | Ownership model eliminates leaks |
+| Compiler | — | LLVM + Rust | Native binary output |
+| Kernel | — | Rust | no_std, safe systems code |
+| Python Bindings | — | PyO3 | Easy embedding |
+| Package Manager | — | Rust + Git | Cargo-style deps |
 
 ---
 
 ## File Structure
 
+### Current
 ```
 hunnu-lang/
 ├── compiler/
-│   ├── lexer/          # Tokenizer
-│   ├── parser/        # Parser (AST)
-│   ├── ast/          # AST node types
-│   ├── interpreter/  # Tree-walk interpreter
-│   └── vm/          # Bytecode + VM
-├── cli/              # CLI
-├── examples/         # Example code
+│   ├── lexer/          # Tokenizer (C)
+│   ├── parser/        # Parser (C)
+│   ├── ast/          # AST nodes (C)
+│   ├── interpreter/  # Tree-walk interpreter (C)
+│   └── vm/          # Bytecode compiler + VM (C)
+├── vm-rust/           # Rust VM [Month 1 focus]
+├── cli/              # Command-line interface
+├── examples/         # Example programs
+├── plan.md           # This file
 └── CMakeLists.txt
+```
+
+### Target (Month 6)
+```
+hunnu-lang/
+├── compiler-rust/     # Full Rust frontend
+│   ├── lexer/
+│   ├── parser/
+│   ├── ast/
+│   ├── typecheck/
+│   └── codegen/      # LLVM IR generation
+├── vm-rust/          # Rust VM (interpreted mode)
+├── kernel/           # Bare-metal kernel
+│   ├── boot.rs
+│   ├── alloc.rs
+│   ├── vga.rs
+│   └── main.rs
+├── stdlib/           # Standard library
+│   ├── core.hn       # Primitives
+│   ├── io.hn         # I/O
+│   ├── math.hn       # Math
+│   └── array.hn      # Array utilities
+├── bindings/
+│   └── python/       # PyO3 bindings
+├── cli/              # Unified CLI
+├── examples/
+├── benchmarks/
+├── docs/
+├── Cargo.toml
+└── CMakeLists.txt    # Kept for legacy C interpreter
 ```
 
 ---
 
-## Development Timeline
+## Risk Assessment
 
-```
-2025-04  Phase 1: Foundation Fixes
-2025-04  Phase 2: Core Language Features
-2025-04  Phase 3: Standard Library + DX
-2025-04  Phase 4: Bytecode + VM
-```
+| Risk | Impact | Mitigation |
+|------|--------|------------|
+| LLVM codegen complexity | Very High | Start simple: only int/float/strings, expand later |
+| Generics implementation | High | Monomorphize at compile time (like Rust), no runtime cost |
+| Bare-metal boot | Very High | Use `bootloader` crate, focus on VGA text first |
+| Self-hosting timeline | High | Defer to post-v0.1 if not ready |
+| Scope creep | Medium | Strict monthly milestones, no feature additions mid-month |
+
+---
+
+## Success Metrics
+
+| Month | Metric | Target |
+|-------|--------|--------|
+| 1 | Rust VM passes existing .hn tests | 100% |
+| 2 | Standard library modules available | 4+ modules |
+| 3 | Native binary from `hunnu compile` | "Hello World" |
+| 4 | Generic function compiles | `fn id[T](x: T) -> T` |
+| 5 | QEMU boots Hunnu kernel | VGA text output |
+| 6 | `hunnu new` creates runnable project | Full cycle |
 
 ---
 
@@ -199,4 +383,4 @@ hunnu-lang/
 - Web: https://hunnu-lang.dev
 - GitHub: https://github.com/hunnu-labs/hunnu-lang
 
-MIT License © 2025 Hunnu
+MIT License © 2025-2026 Hunnu

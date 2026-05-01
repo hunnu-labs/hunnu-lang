@@ -30,7 +30,9 @@ static const char* ast_type_names[] = {
     "ASSIGN",
     "ARRAY_EXPR",
     "INDEX_EXPR",
-    "STRING_CONCAT"
+    "INDEX_ASSIGN",
+    "STRING_CONCAT",
+    "EXTERN_FN"
 };
 
 /**
@@ -39,7 +41,7 @@ static const char* ast_type_names[] = {
  * @return String name
  */
 const char* ast_node_type_to_string(ASTNodeType type) {
-    if (type >= 0 && type <= AST_STRING_CONCAT) {
+    if (type >= 0 && type <= AST_INDEX_ASSIGN) {
         return ast_type_names[type];
     }
     return "UNKNOWN";
@@ -305,6 +307,17 @@ ASTNode* ast_index_expr_create(ASTNode* array, ASTNode* index, int32_t line, int
     return node;
 }
 
+ASTNode* ast_index_assign_create(ASTNode* array, ASTNode* index, ASTNode* value, int32_t line, int32_t column) {
+    ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
+    node->type = AST_INDEX_ASSIGN;
+    node->line = line;
+    node->column = column;
+    node->data.index_assign.array = array;
+    node->data.index_assign.index = index;
+    node->data.index_assign.value = value;
+    return node;
+}
+
 ASTNode* ast_string_concat_create(ASTNode* left, ASTNode* right, int32_t line, int32_t column) {
     ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
     node->type = AST_STRING_CONCAT;
@@ -312,6 +325,22 @@ ASTNode* ast_string_concat_create(ASTNode* left, ASTNode* right, int32_t line, i
     node->column = column;
     node->data.string_concat.left = left;
     node->data.string_concat.right = right;
+    return node;
+}
+
+ASTNode* ast_extern_fn_create(const char* name, const char* lib_name, const char* symbol_name,
+                               char** param_names, size_t param_count, int returns_int,
+                               int32_t line, int32_t column) {
+    ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
+    node->type = AST_EXTERN_FN;
+    node->line = line;
+    node->column = column;
+    node->data.extern_fn.name = strdup(name);
+    node->data.extern_fn.lib_name = lib_name ? strdup(lib_name) : NULL;
+    node->data.extern_fn.symbol_name = strdup(symbol_name);
+    node->data.extern_fn.param_names = param_names;
+    node->data.extern_fn.param_count = param_count;
+    node->data.extern_fn.returns_int = returns_int;
     return node;
 }
 
@@ -405,9 +434,27 @@ static void ast_free_node(ASTNode* node) {
             ast_free_node(node->data.index_expr.index);
             break;
             
+        case AST_INDEX_ASSIGN:
+            ast_free_node(node->data.index_assign.array);
+            ast_free_node(node->data.index_assign.index);
+            ast_free_node(node->data.index_assign.value);
+            break;
+            
         case AST_STRING_CONCAT:
             ast_free_node(node->data.string_concat.left);
             ast_free_node(node->data.string_concat.right);
+            break;
+
+        case AST_EXTERN_FN:
+            free(node->data.extern_fn.name);
+            if (node->data.extern_fn.lib_name) free(node->data.extern_fn.lib_name);
+            free(node->data.extern_fn.symbol_name);
+            for (size_t i = 0; i < node->data.extern_fn.param_count; i++) {
+                free(node->data.extern_fn.param_names[i]);
+            }
+            if (node->data.extern_fn.param_count > 0) {
+                free(node->data.extern_fn.param_names);
+            }
             break;
 
         case AST_WHILE_STMT:
@@ -483,6 +530,14 @@ static void ast_print_node(ASTNode* node, int indent) {
             printf(" (%s)", node->data.assign.name);
             break;
 
+        case AST_EXTERN_FN:
+            printf(" (%s -> %s", node->data.extern_fn.name, node->data.extern_fn.symbol_name);
+            if (node->data.extern_fn.lib_name) {
+                printf(" from %s", node->data.extern_fn.lib_name);
+            }
+            printf(")");
+            break;
+
         case AST_WHILE_STMT:
         case AST_FOR_STMT:
         case AST_BREAK_STMT:
@@ -490,6 +545,7 @@ static void ast_print_node(ASTNode* node, int indent) {
         case AST_RETURN_STMT:
         case AST_ARRAY_EXPR:
         case AST_INDEX_EXPR:
+        case AST_INDEX_ASSIGN:
         case AST_STRING_CONCAT:
         case AST_UNARY_EXPR:
             /* These types don't have names to print */
@@ -574,9 +630,19 @@ static void ast_print_node(ASTNode* node, int indent) {
             ast_print_node(node->data.index_expr.index, indent + 1);
             break;
             
+        case AST_INDEX_ASSIGN:
+            ast_print_node(node->data.index_assign.array, indent + 1);
+            ast_print_node(node->data.index_assign.index, indent + 1);
+            ast_print_node(node->data.index_assign.value, indent + 1);
+            break;
+            
         case AST_STRING_CONCAT:
             ast_print_node(node->data.string_concat.left, indent + 1);
             ast_print_node(node->data.string_concat.right, indent + 1);
+            break;
+
+        case AST_EXTERN_FN:
+            /* No child nodes to recurse into */
             break;
             
         default:

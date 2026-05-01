@@ -64,6 +64,7 @@ void interpreter_clear_break_continue(Interpreter* interp);
 
 /* Value operations */
 void value_free(Value* value);
+Value value_copy(const Value* value);
 void value_print(Value* value);
 int value_as_bool(Value* value);
 int64_t value_as_int(Value* value);
