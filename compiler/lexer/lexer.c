@@ -34,6 +34,7 @@ static const char* keyword_names[] = {
     "break",      "зогсоох",  // break
     "continue",   "үргэлжлүүлэх", // continue
     "null",       "хоосон",  // null
+    "import",     "импорт",  // import
     NULL
 };
 
@@ -51,6 +52,7 @@ static TokenType keyword_types[] = {
     TOKEN_BREAK,  TOKEN_BREAK,
     TOKEN_CONTINUE, TOKEN_CONTINUE,
     TOKEN_NULL,   TOKEN_NULL,
+    TOKEN_IMPORT, TOKEN_IMPORT,
     TOKEN_UNKNOWN
 };
 

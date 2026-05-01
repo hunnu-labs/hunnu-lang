@@ -24,6 +24,7 @@ struct Interpreter {
     int has_return;
     int has_break;
     int has_continue;
+    int32_t current_line;
 };
 
 /**
@@ -105,6 +106,7 @@ Interpreter* interpreter_new(void) {
     interp->has_return = 0;
     interp->has_break = 0;
     interp->has_continue = 0;
+    interp->current_line = 0;
     return interp;
 }
 
@@ -172,7 +174,7 @@ void interpreter_free(Interpreter* interp) {
     free(interp);
 }
 
-/** Copies a value (shallow copy) */
+/** Copies a value (deep copy) */
 static Value value_copy(const Value* val) {
     Value copy;
     copy.type = val->type;
@@ -180,11 +182,20 @@ static Value value_copy(const Value* val) {
     
     if (val->type == VALUE_STRING) {
         copy.value.string_value = strdup(val->value.string_value);
+    } else if (val->type == VALUE_ARRAY) {
+        copy.array_length = val->array_length;
+        copy.array_elements = (Value**)malloc(sizeof(Value*) * val->array_length);
+        for (size_t i = 0; i < val->array_length; i++) {
+            copy.array_elements[i] = (Value*)malloc(sizeof(Value));
+            *copy.array_elements[i] = value_copy(val->array_elements[i]);
+        }
     } else {
         copy.value = val->value;
+        copy.array_length = val->array_length;
     }
-    copy.array_length = val->array_length;
-    copy.array_elements = val->array_elements;
+    if (val->type != VALUE_ARRAY) {
+        copy.array_elements = val->array_elements;
+    }
     return copy;
 }
 
@@ -262,6 +273,11 @@ void value_free(Value* value) {
     if (value->type == VALUE_STRING) {
         free(value->value.string_value);
     } else if (value->type == VALUE_ARRAY) {
+        for (size_t i = 0; i < value->array_length; i++) {
+            value_free(value->array_elements[i]);
+            free(value->array_elements[i]);
+        }
+        free(value->array_elements);
         value->array_length = 0;
         value->array_elements = NULL;
     }
@@ -350,6 +366,10 @@ int64_t value_as_int(Value* value) {
 static Value interpreter_evaluate(Interpreter* interp, ASTNode* node) {
     if (!node) return value_create_none();
     
+    if (node->line > 0) {
+        interp->current_line = node->line;
+    }
+    
     switch (node->type) {
         case AST_LITERAL: {
             if (node->data.literal.literal_type == TOKEN_INT_LITERAL) {
@@ -370,7 +390,7 @@ static Value interpreter_evaluate(Interpreter* interp, ASTNode* node) {
             if (val) {
                 return value_copy(val);
             }
-            fprintf(stderr, "Error: Undefined variable '%s'\n", name);
+            fprintf(stderr, "Error at line %d: Undefined variable '%s'\n", interp->current_line, name);
             return value_create_none();
         }
         
@@ -426,25 +446,25 @@ static Value interpreter_evaluate(Interpreter* interp, ASTNode* node) {
             if (op == TOKEN_SLASH) {
                 if (left.type == VALUE_INT && right.type == VALUE_INT) {
                     if (right.value.int_value == 0) {
-                        fprintf(stderr, "Error: Division by zero at runtime\n");
+                        fprintf(stderr, "Error at line %d: Division by zero\n", interp->current_line);
                     } else {
                         result = value_create_int(left.value.int_value / right.value.int_value);
                     }
                 } else if (left.type == VALUE_FLOAT && right.type == VALUE_FLOAT) {
                     if (right.value.float_value == 0.0) {
-                        fprintf(stderr, "Error: Division by zero at runtime\n");
+                        fprintf(stderr, "Error at line %d: Division by zero\n", interp->current_line);
                     } else {
                         result = value_create_float(left.value.float_value / right.value.float_value);
                     }
                 } else if (left.type == VALUE_INT && right.type == VALUE_FLOAT) {
                     if (right.value.float_value == 0.0) {
-                        fprintf(stderr, "Error: Division by zero at runtime\n");
+                        fprintf(stderr, "Error at line %d: Division by zero\n", interp->current_line);
                     } else {
                         result = value_create_float((double)left.value.int_value / right.value.float_value);
                     }
                 } else if (left.type == VALUE_FLOAT && right.type == VALUE_INT) {
                     if (right.value.int_value == 0) {
-                        fprintf(stderr, "Error: Division by zero at runtime\n");
+                        fprintf(stderr, "Error at line %d: Division by zero\n", interp->current_line);
                     } else {
                         result = value_create_float(left.value.float_value / (double)right.value.int_value);
                     }
@@ -539,15 +559,15 @@ static Value interpreter_evaluate(Interpreter* interp, ASTNode* node) {
                     value_free(&index_val);
                     return copy;
                 } else {
-                    fprintf(stderr, "Error: Index out of bounds (index %ld, length %zu)\n", 
-                            (long)idx, array_val.array_length);
+                    fprintf(stderr, "Error at line %d: Index out of bounds (index %ld, length %zu)\n",
+                            interp->current_line, (long)idx, array_val.array_length);
                     value_free(&array_val);
                     value_free(&index_val);
                     return value_create_none();
                 }
             }
             
-            fprintf(stderr, "Error: Can only index into arrays\n");
+            fprintf(stderr, "Error at line %d: Can only index into arrays\n", interp->current_line);
             value_free(&array_val);
             value_free(&index_val);
             return value_create_none();
@@ -627,7 +647,7 @@ static Value interpreter_evaluate(Interpreter* interp, ASTNode* node) {
                 return value_create_float(result);
             }
             
-            fprintf(stderr, "Error: Unknown function '%s'\n", name);
+            fprintf(stderr, "Error at line %d: Unknown function '%s'\n", interp->current_line, name);
             return value_create_none();
         }
         

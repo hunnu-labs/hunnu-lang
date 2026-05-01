@@ -340,12 +340,23 @@ static void vm_run(VM* vm) {
             case OP_GET_INDEX: {
                 Value index = vm_pop(vm);
                 Value arr = vm_pop(vm);
-                if (arr.type != VALUE_ARRAY) break;
+                if (arr.type != VALUE_ARRAY) {
+                    value_free(&index);
+                    value_free(&arr);
+                    Value v = value_create_none();
+                    vm_push(vm, v);
+                    break;
+                }
                 int64_t idx = index.type == VALUE_FLOAT ? (int64_t)index.value.float_value : index.value.int_value;
                 if (idx < 0) idx += arr.array_length;
                 if (idx >= 0 && idx < (int64_t)arr.array_length) {
-                    vm_push(vm, *arr.array_elements[idx]);
+                    Value elem = *arr.array_elements[idx];
+                    value_free(&index);
+                    value_free(&arr);
+                    vm_push(vm, elem);
                 } else {
+                    value_free(&index);
+                    value_free(&arr);
                     Value v = value_create_none();
                     vm_push(vm, v);
                 }

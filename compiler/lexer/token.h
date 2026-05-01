@@ -31,6 +31,7 @@ typedef enum {
     TOKEN_CONTINUE,
     TOKEN_NULL,
     TOKEN_NIL_KEYWORD,
+    TOKEN_IMPORT,
     
     TOKEN_LPAREN,
     TOKEN_RPAREN,

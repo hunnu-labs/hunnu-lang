@@ -81,16 +81,17 @@ Hunnu is a lightweight programming language written in C. It supports both **Eng
 
 | Feature | Description | Difficulty |
 |--------|-------------|------------|
-| Array memory fix | Deep copy arrays, proper free | Medium |
-| `import` statement | External file loading | Medium |
-| Error line numbers | Show source line in errors | Easy |
+| Garbage collection | Basic mark-and-sweep or ref counting | Hard |
+| `len()` for strings | `len("hello")` returns char count | Easy |
+| Array index assignment | `arr[0] = 5` | Medium |
+| `--vm` function support | User-defined functions in VM | Hard |
 
 ### Medium Priority
 
 | Feature | Description | Difficulty |
 |--------|-------------|------------|
 | Structs/Records | `type Point = { x: int, y: int }` | Hard |
-| `else if` chains | Multiple conditions | Easy |
+| `else if` chains | Multiple conditions | ~~Easy~~ ✅ Done |
 | Standard library | Common functions | Medium |
 | Pattern matching | `match x { ... }` | Hard |
 
@@ -109,43 +110,58 @@ Hunnu is a lightweight programming language written in C. It supports both **Eng
 
 | Issue | Location | Severity |
 |--------|----------|----------|
-| Array shallow copy | value_copy() | Medium |
-| Double-free in arrays | VM execution | Medium |
 | No garbage collection | interpreter.c | High |
+| VM user-defined functions | vm.c, vm/compiler.c | Medium |
+| Array index assignment | VM missing OP_SET_INDEX | Medium |
+| Lexer token type strings | token_type_to_string() inaccurate | Low |
+| Parser uses while keyword for multiple tokens | Debug output misleading | Low |
 
 ---
 
 ## Tomorrow's Tasks
 
-### 1. Array Memory Fix
+### 1. Garbage Collection
 ```
 Priority: High
-Files: interpreter.c, vm.c
+Files: interpreter.c, interpreter.h
 Steps:
-- Fix value_copy() to deep copy array elements
-- Fix VM OP_CREATE_ARRAY to avoid double-free
-- Add array element cleanup in value_free()
+- Implement reference counting on Value struct
+- Increment ref count on value_copy()
+- Decrement ref count on value_free()
+- Free string/array when ref count reaches 0
+- Handle circular references (optional: mark-and-sweep)
 ```
 
-### 2. Import Statement
+### 2. Array Index Assignment
 ```
 Priority: High  
-Files: parser.c, lexer.c, cli/main.c
+Files: vm/vm.c, vm/compiler.c, parser/parser.c
 Steps:
-- Add TOKEN_IMPORT to token.h
-- Add keyword "import" / "импорт"
-- Parse import statement: import "module.hn"
-- Load and concatenate source files
+- Parse: arr[expr] = expr (AST_INDEX_ASSIGN node)
+- Add OP_SET_INDEX opcode
+- Implement in VM: pop value, pop index, pop array, set element
+- Add bounds checking
 ```
 
-### 3. Error Line Numbers
+### 3. len() for Strings
 ```
 Priority: Easy
-Files: parser.c, interpreter.c
+Files: interpreter.c
 Steps:
-- Pass source lines to AST nodes
-- Show line number in parse errors
-- Show line number in runtime errors
+- Already implemented in interpreter (len returns string length)
+- Verify: len("hello") should return 5
+- Add test case
+```
+
+### 4. VM User-Defined Functions
+```
+Priority: High
+Files: vm/compiler.c, vm/vm.c
+Steps:
+- Compile fn declarations to bytecode (OP_DEFINE_FN)
+- Add OP_CALL_FN opcode for user function calls
+- Implement call frame stack in VM
+- Handle parameters and return values
 ```
 
 ---
