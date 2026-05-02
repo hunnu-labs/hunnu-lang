@@ -38,8 +38,8 @@ pub enum OpCode {
     CreateString = 32,
     Call = 33,
     Return = 34,
-    Halt = 35,
-    DefineFn = 36,
+    DefineFn = 35,
+    Halt = 36,
 }
 
 impl OpCode {
@@ -80,8 +80,8 @@ impl OpCode {
             32 => Some(OpCode::CreateString),
             33 => Some(OpCode::Call),
             34 => Some(OpCode::Return),
-            35 => Some(OpCode::Halt),
-            36 => Some(OpCode::DefineFn),
+            35 => Some(OpCode::DefineFn),
+            36 => Some(OpCode::Halt),
             _ => None,
         }
     }

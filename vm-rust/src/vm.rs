@@ -96,10 +96,6 @@ impl VM {
             }
 
             let op = OpCode::from_byte(bytecode[ip]);
-            eprintln!(
-                "DEBUG: ip={}, opcode={:?}, bytecode[ip]={}",
-                ip, op, bytecode[ip]
-            );
             self.increment_ip(1);
 
             match op {
@@ -466,32 +462,36 @@ impl VM {
                     let fn_name = self.pop()?;
 
                     if let Value::String(name) = fn_name {
-                        if let Some(func) = self.find_function(&name) {
-                            let return_ip = self.current_ip();
-                            let func_entry = func.entry_point;
-                            let func_arg_count = func.arg_count;
+                        // Find function first, extract needed data, then release the borrow
+                        let func_info = self
+                            .find_function(&name)
+                            .map(|f| (f.entry_point, f.arg_count));
 
-                            let mut locals = Vec::with_capacity(MAX_LOCALS);
-                            for _ in 0..func_arg_count {
+                        if let Some((entry_point, arg_count)) = func_info {
+                            // Save return IP before calling
+                            let return_ip = self.current_ip();
+
+                            // Pop arguments for the function
+                            let mut locals = Vec::with_capacity(arg_count as usize);
+                            for _ in 0..arg_count {
                                 if let Ok(val) = self.pop() {
                                     locals.insert(0, val);
                                 }
                             }
 
-                            let old_frame = self.frames.pop().unwrap();
+                            // Push new frame for the called function
                             self.frames.push(CallFrame {
-                                ip: return_ip,
-                                locals: old_frame.locals,
-                                return_ip: old_frame.return_ip,
-                            });
-
-                            self.frames.push(CallFrame {
-                                ip: func_entry,
+                                ip: entry_point,
                                 locals,
-                                return_ip: return_ip,
+                                return_ip,
                             });
                         } else {
+                            // Call builtin
                             self.call_builtin(&name, arg_count)?;
+                            // Pop arguments after builtin call
+                            for _ in 0..arg_count {
+                                let _ = self.pop();
+                            }
                         }
                     }
                 }
