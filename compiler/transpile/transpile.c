@@ -437,6 +437,9 @@ static void transpile_node(ASTNode* node, FILE* out, int indent, int is_expr) {
         case AST_MATCH_EXPR:
         case AST_TRY_STMT:
         case AST_INDEX_ASSIGN:
+        case AST_CLASS_DECL:
+        case AST_NEW_EXPR:
+        case AST_FIELD_ASSIGN:
             write_indent(out, indent);
             fprintf(out, "// Unsupported: %s\n", ast_node_type_to_string(node->type));
             break;
@@ -473,7 +476,10 @@ char* transpile_to_c(ASTNode* program) {
             ASTNode* stmt = program->data.program.statements[i];
             if (stmt->type == AST_TYPE_DECL) {
                 type_registry_add(stmt->data.type_decl.name, stmt->data.type_decl.fields, stmt->data.type_decl.field_count);
-                    (void)stmt->data.type_decl.is_pub; /* not yet used in transpiler */
+                    (void)stmt->data.type_decl.is_pub;
+            } else if (stmt->type == AST_CLASS_DECL) {
+                type_registry_add(stmt->data.class_decl.name, stmt->data.class_decl.fields, stmt->data.class_decl.field_count);
+                    (void)stmt->data.class_decl.is_pub;
             }
         }
         for (size_t i = 0; i < program->data.program.count; i++) {

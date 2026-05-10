@@ -33,6 +33,8 @@ static const char* token_type_names[] = {
     "PUB",
     "SELF",
     "TYPE",
+    "CLASS",
+    "NEW",
     "DOT",
     "AMPERSAND",
     "LPAREN",

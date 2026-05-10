@@ -40,6 +40,8 @@ typedef enum {
     TOKEN_PUB,
     TOKEN_SELF,
     TOKEN_TYPE,
+    TOKEN_CLASS,
+    TOKEN_NEW,
     TOKEN_DOT,
     TOKEN_AMPERSAND,
     

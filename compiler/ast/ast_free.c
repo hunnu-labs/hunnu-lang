@@ -172,6 +172,38 @@ static void ast_free_node(ASTNode* node) {
             }
             break;
 
+        case AST_CLASS_DECL:
+            free(node->data.class_decl.name);
+            for (size_t i = 0; i < node->data.class_decl.field_count; i++) {
+                free(node->data.class_decl.fields[i]);
+            }
+            if (node->data.class_decl.field_count > 0) {
+                free(node->data.class_decl.fields);
+                free(node->data.class_decl.is_pub);
+            }
+            ast_free_node(node->data.class_decl.constructor);
+            for (size_t i = 0; i < node->data.class_decl.method_count; i++) {
+                ast_free_node(node->data.class_decl.methods[i]);
+            }
+            free(node->data.class_decl.methods);
+            break;
+
+        case AST_NEW_EXPR:
+            free(node->data.new_expr.class_name);
+            for (size_t i = 0; i < node->data.new_expr.arg_count; i++) {
+                ast_free_node(node->data.new_expr.args[i]);
+            }
+            if (node->data.new_expr.arg_count > 0) {
+                free(node->data.new_expr.args);
+            }
+            break;
+
+        case AST_FIELD_ASSIGN:
+            ast_free_node(node->data.field_assign.object);
+            free(node->data.field_assign.field);
+            ast_free_node(node->data.field_assign.value);
+            break;
+
         case AST_WHILE_STMT:
         case AST_FOR_STMT:
         case AST_BREAK_STMT:

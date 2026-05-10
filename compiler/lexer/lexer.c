@@ -42,6 +42,8 @@ static const char* keyword_names[] = {
     "catch",      "барих",    // catch
     "finally",    "эцэст",    // finally
     "type",       "төрөл",    // type (struct)
+    "class",      "класс",    // class declaration
+    "new",        "шинэ",     // constructor/instantiation
     "pub",        "нийт",     // public field
     "self",       "өөрөө",    // self reference
     NULL
@@ -68,6 +70,8 @@ static TokenType keyword_types[] = {
     TOKEN_CATCH,  TOKEN_CATCH,
     TOKEN_FINALLY, TOKEN_FINALLY,
     TOKEN_TYPE,   TOKEN_TYPE,
+    TOKEN_CLASS,  TOKEN_CLASS,
+    TOKEN_NEW,    TOKEN_NEW,
     TOKEN_PUB,    TOKEN_PUB,
     TOKEN_SELF,   TOKEN_SELF,
     TOKEN_UNKNOWN

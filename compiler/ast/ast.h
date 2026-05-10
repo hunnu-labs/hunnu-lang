@@ -43,6 +43,9 @@ typedef enum {
     AST_DEREFERENCE,
     AST_STRUCT_INSTANCE,
     AST_METHOD_CALL,
+    AST_CLASS_DECL,
+    AST_NEW_EXPR,
+    AST_FIELD_ASSIGN,
 } ASTNodeType;
 
 /** AST node structure */
@@ -246,6 +249,31 @@ typedef struct ASTNode {
             struct ASTNode** args;
             size_t arg_count;
         } method_call;
+
+        /** Class declaration: class Name { ... } */
+        struct {
+            char* name;                      /* Class name */
+            char** fields;                   /* Field names */
+            int* is_pub;                     /* Field visibility */
+            size_t field_count;              /* Number of fields */
+            struct ASTNode* constructor;      /* fn_decl for new() or NULL */
+            struct ASTNode** methods;         /* Other method fn_decls */
+            size_t method_count;              /* Number of methods */
+        } class_decl;
+
+        /** New expression: new ClassName(args) */
+        struct {
+            char* class_name;                /* Class name */
+            struct ASTNode** args;           /* Constructor arguments */
+            size_t arg_count;                /* Number of arguments */
+        } new_expr;
+
+        /** Field assignment: obj.field = value */
+        struct {
+            struct ASTNode* object;           /* Object expression */
+            char* field;                     /* Field name */
+            struct ASTNode* value;           /* Value to assign */
+        } field_assign;
     } data;
 } ASTNode;
 
@@ -295,6 +323,14 @@ ASTNode* ast_struct_instance_create(const char* type_name, char** field_names,
 ASTNode* ast_method_call_create(ASTNode* object, const char* method,
                                  ASTNode** args, size_t arg_count,
                                  int32_t line, int32_t column);
+ASTNode* ast_class_decl_create(const char* name, char** fields, int* is_pub,
+                                size_t field_count, ASTNode* constructor,
+                                ASTNode** methods, size_t method_count,
+                                int32_t line, int32_t column);
+ASTNode* ast_new_expr_create(const char* class_name, ASTNode** args,
+                              size_t arg_count, int32_t line, int32_t column);
+ASTNode* ast_field_assign_create(ASTNode* object, const char* field,
+                                  ASTNode* value, int32_t line, int32_t column);
 
 void ast_free(ASTNode* node);
 void ast_print(ASTNode* node, int indent);

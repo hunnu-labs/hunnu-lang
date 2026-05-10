@@ -322,6 +322,84 @@ static Value interpreter_evaluate(Interpreter* interp, ASTNode* node) {
             return value_create_struct_value(t->name, fields, t->field_count);
         }
 
+        case AST_CLASS_DECL: {
+            /* Register type */
+            interpreter_register_type(interp, node->data.class_decl.name,
+                                       node->data.class_decl.fields,
+                                       node->data.class_decl.is_pub,
+                                       node->data.class_decl.field_count);
+            /* Register constructor as ClassName.new if present */
+            if (node->data.class_decl.constructor) {
+                ASTNode* ctor = node->data.class_decl.constructor;
+                if (interp->user_fn_count < MAX_USER_FNS) {
+                    UserFn* ufn = &interp->user_fns[interp->user_fn_count++];
+                    char* ctor_name = (char*)malloc(strlen(node->data.class_decl.name) + 5);
+                    sprintf(ctor_name, "%s.new", node->data.class_decl.name);
+                    ufn->name = ctor_name;
+                    ufn->node = ctor;
+                }
+            }
+            /* Register other methods */
+            for (size_t i = 0; i < node->data.class_decl.method_count; i++) {
+                ASTNode* method = node->data.class_decl.methods[i];
+                if (interp->user_fn_count < MAX_USER_FNS) {
+                    UserFn* ufn = &interp->user_fns[interp->user_fn_count++];
+                    ufn->name = strdup(method->data.fn_decl.name);
+                    ufn->node = method;
+                }
+            }
+            return value_create_none();
+        }
+
+        case AST_NEW_EXPR: {
+            const char* cls_name = node->data.new_expr.class_name;
+            TypeInfo* t = interpreter_lookup_type(interp, cls_name);
+            if (!t) {
+                fprintf(stderr, "Error at line %d: ", interp->current_line);
+                fprintf(stderr, "Unknown class '%s'\n", cls_name);
+                return value_create_none();
+            }
+            /* Create struct instance with fields set from constructor args (by position) */
+            Value** fields = (Value**)malloc(sizeof(Value*) * t->field_count);
+            for (size_t i = 0; i < t->field_count; i++) {
+                fields[i] = (Value*)malloc(sizeof(Value));
+                if (i < node->data.new_expr.arg_count) {
+                    *fields[i] = interpreter_evaluate(interp, node->data.new_expr.args[i]);
+                } else {
+                    *fields[i] = value_create_none();
+                }
+            }
+            Value instance = value_create_struct_value(t->name, fields, t->field_count);
+
+            /* Call constructor if exists for any side effects */
+            char* ctor_name = (char*)malloc(strlen(cls_name) + 5);
+            sprintf(ctor_name, "%s.new", cls_name);
+            UserFn* ctor_fn = NULL;
+            for (size_t i = 0; i < interp->user_fn_count; i++) {
+                if (strcmp(interp->user_fns[i].name, ctor_name) == 0) {
+                    ctor_fn = &interp->user_fns[i];
+                    break;
+                }
+            }
+            free(ctor_name);
+
+            if (ctor_fn) {
+                size_t arg_count = node->data.new_expr.arg_count;
+                size_t total_args = 1 + arg_count;
+                Value* call_args = (Value*)malloc(sizeof(Value) * total_args);
+                call_args[0] = value_copy(&instance);
+                for (size_t i = 0; i < arg_count; i++) {
+                    call_args[1 + i] = interpreter_evaluate(interp, node->data.new_expr.args[i]);
+                }
+                Value result = interpreter_call_user_fn(interp, ctor_fn, call_args, total_args);
+                for (size_t i = 0; i < total_args; i++) value_free(&call_args[i]);
+                free(call_args);
+                value_free(&result);
+            }
+
+            return instance;
+        }
+
         case AST_METHOD_CALL: {
             const char* method = node->data.method_call.method;
             UserFn* ufn = NULL;
@@ -600,6 +678,43 @@ static Value interpreter_evaluate(Interpreter* interp, ASTNode* node) {
             return value_create_none();
         }
         
+        case AST_FIELD_ASSIGN: {
+            Value obj = interpreter_evaluate(interp, node->data.field_assign.object);
+            const char* field = node->data.field_assign.field;
+            Value val = interpreter_evaluate(interp, node->data.field_assign.value);
+
+            if (obj.type == VALUE_STRUCT) {
+                Value* obj_ptr = NULL;
+                if (node->data.field_assign.object->type == AST_IDENTIFIER) {
+                    obj_ptr = scope_lookup(interp->current_scope,
+                                           node->data.field_assign.object->data.identifier.name);
+                }
+                Value* target = obj_ptr ? obj_ptr : &obj;
+                for (size_t i = 0; i < target->struct_field_count; i++) {
+                    TypeInfo* t = interpreter_lookup_type(interp, target->struct_type);
+                    if (t && i < t->field_count && strcmp(t->fields[i], field) == 0) {
+                        value_free(target->struct_fields[i]);
+                        target->struct_fields[i] = (Value*)malloc(sizeof(Value));
+                        *target->struct_fields[i] = value_copy(&val);
+                        value_free(&obj);
+                        value_free(&val);
+                        return val;
+                    }
+                }
+                fprintf(stderr, "Error at line %d: ", interp->current_line);
+                fprintf(stderr, "Field '%s' not found on type '%s'\n", field, target->struct_type);
+                value_free(&obj);
+                value_free(&val);
+                return value_create_none();
+            }
+
+            fprintf(stderr, "Error at line %d: ", interp->current_line);
+            fprintf(stderr, "Field assignment on non-struct\n");
+            value_free(&obj);
+            value_free(&val);
+            return value_create_none();
+        }
+
         case AST_INDEX_ASSIGN: {
             Value index_val = interpreter_evaluate(interp, node->data.index_assign.index);
             Value assign_val = interpreter_evaluate(interp, node->data.index_assign.value);
@@ -1246,19 +1361,20 @@ static void interpreter_execute_statement(Interpreter* interp, ASTNode* node) {
             break;
         }
         
-        case AST_TYPE_DECL: {
-            interpreter_register_type(interp, node->data.type_decl.name,
-                                       node->data.type_decl.fields,
-                                       node->data.type_decl.is_pub,
-                                       node->data.type_decl.field_count);
+        case AST_TYPE_DECL:
+        case AST_CLASS_DECL: {
+            Value result = interpreter_evaluate(interp, node);
+            value_free(&result);
             break;
         }
 
         case AST_STRUCT_INSTANCE:
         case AST_METHOD_CALL:
         case AST_FIELD_ACCESS:
+        case AST_FIELD_ASSIGN:
         case AST_ADDRESS_OF:
-        case AST_DEREFERENCE: {
+        case AST_DEREFERENCE:
+        case AST_NEW_EXPR: {
             Value result = interpreter_evaluate(interp, node);
             value_free(&result);
             break;
