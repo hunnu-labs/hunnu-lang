@@ -372,14 +372,15 @@ ASTNode* ast_try_stmt_create(ASTNode* try_block, const char* catch_var,
     return node;
 }
 
-ASTNode* ast_type_decl_create(const char* name, char** fields, size_t field_count,
-                               int32_t line, int32_t column) {
+ASTNode* ast_type_decl_create(const char* name, char** fields, int* is_pub, size_t field_count,
+                                int32_t line, int32_t column) {
     ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
     node->type = AST_TYPE_DECL;
     node->line = line;
     node->column = column;
     node->data.type_decl.name = strdup(name);
     node->data.type_decl.fields = fields;
+    node->data.type_decl.is_pub = is_pub;
     node->data.type_decl.field_count = field_count;
     return node;
 }

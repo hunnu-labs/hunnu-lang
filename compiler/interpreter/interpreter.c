@@ -22,6 +22,7 @@ typedef struct {
 typedef struct {
     char* name;
     char** fields;
+    int* is_pub;
     size_t field_count;
 } TypeInfo;
 
@@ -115,7 +116,7 @@ void interpreter_free(Interpreter* interp) {
     free(interp);
 }
 
-static void interpreter_register_type(Interpreter* interp, const char* name, char** fields, size_t field_count) {
+static void interpreter_register_type(Interpreter* interp, const char* name, char** fields, int* is_pub, size_t field_count) {
     for (size_t i = 0; i < interp->type_count; i++) {
         if (strcmp(interp->types[i].name, name) == 0) {
             return;
@@ -129,9 +130,11 @@ static void interpreter_register_type(Interpreter* interp, const char* name, cha
     TypeInfo* t = &interp->types[interp->type_count++];
     t->name = strdup(name);
     t->fields = (char**)malloc(sizeof(char*) * field_count);
+    t->is_pub = (int*)malloc(sizeof(int) * field_count);
     t->field_count = field_count;
     for (size_t i = 0; i < field_count; i++) {
         t->fields[i] = strdup(fields[i]);
+        t->is_pub[i] = is_pub ? is_pub[i] : 1;
     }
 }
 
@@ -222,6 +225,7 @@ static Value interpreter_evaluate(Interpreter* interp, ASTNode* node) {
         case AST_TYPE_DECL: {
             interpreter_register_type(interp, node->data.type_decl.name,
                                        node->data.type_decl.fields,
+                                       node->data.type_decl.is_pub,
                                        node->data.type_decl.field_count);
             return value_create_none();
         }
@@ -231,14 +235,18 @@ static Value interpreter_evaluate(Interpreter* interp, ASTNode* node) {
             const char* field = node->data.field_access.field;
 
             if (obj.type == VALUE_STRUCT) {
-                /* Look up field by index in the struct's field values */
-                for (size_t i = 0; i < obj.struct_field_count; i++) {
-                    /* Check field names by looking up the type */
-                    TypeInfo* t = interpreter_lookup_type(interp, obj.struct_type);
-                    if (t && i < t->field_count && strcmp(t->fields[i], field) == 0) {
-                        Value result = value_copy(obj.struct_fields[i]);
-                        value_free(&obj);
-                        return result;
+                TypeInfo* t = interpreter_lookup_type(interp, obj.struct_type);
+                if (t) {
+                    for (size_t i = 0; i < t->field_count; i++) {
+                        if (strcmp(t->fields[i], field) == 0) {
+                            if (!t->is_pub[i]) {
+                                fprintf(stderr, "Warning at line %d: ", interp->current_line);
+                                fprintf(stderr, "Accessing private field '%s' of type '%s'\n", field, t->name);
+                            }
+                            Value result = value_copy(obj.struct_fields[i]);
+                            value_free(&obj);
+                            return result;
+                        }
                     }
                 }
                 value_free(&obj);
@@ -295,6 +303,10 @@ static Value interpreter_evaluate(Interpreter* interp, ASTNode* node) {
                 int found = 0;
                 for (size_t j = 0; j < t->field_count; j++) {
                     if (strcmp(t->fields[j], fname) == 0) {
+                        if (!t->is_pub[j]) {
+                            fprintf(stderr, "Warning at line %d: ", interp->current_line);
+                            fprintf(stderr, "Setting private field '%s' of type '%s'\n", fname, t->name);
+                        }
                         value_free(fields[j]);
                         *fields[j] = interpreter_evaluate(interp, node->data.struct_instance.field_values[i]);
                         found = 1;
@@ -1237,6 +1249,7 @@ static void interpreter_execute_statement(Interpreter* interp, ASTNode* node) {
         case AST_TYPE_DECL: {
             interpreter_register_type(interp, node->data.type_decl.name,
                                        node->data.type_decl.fields,
+                                       node->data.type_decl.is_pub,
                                        node->data.type_decl.field_count);
             break;
         }

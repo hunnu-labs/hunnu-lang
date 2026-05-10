@@ -211,6 +211,7 @@ typedef struct ASTNode {
         struct {
             char* name;                    /* Struct name */
             char** fields;                 /* Field names */
+            int* is_pub;                   /* 1 if field is public, 0 if private */
             size_t field_count;            /* Number of fields */
         } type_decl;
 
@@ -282,8 +283,8 @@ ASTNode* ast_extern_fn_create(const char* name, const char* lib_name, const char
 ASTNode* ast_try_stmt_create(ASTNode* try_block, const char* catch_var,
                                ASTNode* catch_block, ASTNode* finally_block,
                                int32_t line, int32_t column);
-ASTNode* ast_type_decl_create(const char* name, char** fields, size_t field_count,
-                              int32_t line, int32_t column);
+ASTNode* ast_type_decl_create(const char* name, char** fields, int* is_pub, size_t field_count,
+                               int32_t line, int32_t column);
 ASTNode* ast_field_access_create(ASTNode* object, const char* field,
                                   int32_t line, int32_t column);
 ASTNode* ast_address_of_create(ASTNode* operand, int32_t line, int32_t column);

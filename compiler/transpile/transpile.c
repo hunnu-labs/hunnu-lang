@@ -473,6 +473,7 @@ char* transpile_to_c(ASTNode* program) {
             ASTNode* stmt = program->data.program.statements[i];
             if (stmt->type == AST_TYPE_DECL) {
                 type_registry_add(stmt->data.type_decl.name, stmt->data.type_decl.fields, stmt->data.type_decl.field_count);
+                    (void)stmt->data.type_decl.is_pub; /* not yet used in transpiler */
             }
         }
         for (size_t i = 0; i < program->data.program.count; i++) {

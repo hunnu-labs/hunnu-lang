@@ -338,10 +338,11 @@ ASTNode* parser_parse_declaration(Parser* parser) {
         parser_consume(parser, TOKEN_LBRACE, "Expected '{' after '='");
         
         char** fields = NULL;
+        int* is_pub = NULL;
         size_t field_count = 0;
         size_t field_capacity = 8;
         fields = (char**)malloc(sizeof(char*) * field_capacity);
-        /* We don't need visibility info in the AST - runtime decides */
+        is_pub = (int*)malloc(sizeof(int) * field_capacity);
         
         while (!parser_check(parser, TOKEN_RBRACE) && !parser_check(parser, TOKEN_EOF)) {
             if (field_count > 0) {
@@ -350,15 +351,16 @@ ASTNode* parser_parse_declaration(Parser* parser) {
                 }
             }
             
-            if (parser_match(parser, TOKEN_PUB)) {
-            }
+            int pub = parser_match(parser, TOKEN_PUB) ? 1 : 0;
             
             if (!parser_check(parser, TOKEN_IDENT)) {
                 parser_error(parser, "Expected field name");
                 break;
             }
             
-            fields[field_count++] = strdup(parser->current->lexeme);
+            fields[field_count] = strdup(parser->current->lexeme);
+            is_pub[field_count] = pub;
+            field_count++;
             parser_advance(parser);
             
             /* Optional type annotation: x: int */
@@ -371,12 +373,13 @@ ASTNode* parser_parse_declaration(Parser* parser) {
             if (field_count >= field_capacity) {
                 field_capacity *= 2;
                 fields = (char**)realloc(fields, sizeof(char*) * field_capacity);
+                is_pub = (int*)realloc(is_pub, sizeof(int) * field_capacity);
             }
         }
         
         parser_consume(parser, TOKEN_RBRACE, "Expected '}' after type fields");
         
-        return ast_type_decl_create(name, fields, field_count,
+        return ast_type_decl_create(name, fields, is_pub, field_count,
                                     parser->previous->line,
                                     parser->previous->column);
     }

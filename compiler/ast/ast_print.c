@@ -202,7 +202,9 @@ static void ast_print_node(ASTNode* node, int indent) {
             printf("TYPE_DECL (%s) with %zu fields\n", node->data.type_decl.name, node->data.type_decl.field_count);
             for (size_t i = 0; i < node->data.type_decl.field_count; i++) {
                 indent_print(indent + 1);
-                printf("field: %s\n", node->data.type_decl.fields[i]);
+                printf("field: %s %s\n", 
+                       node->data.type_decl.is_pub && node->data.type_decl.is_pub[i] ? "pub" : "priv",
+                       node->data.type_decl.fields[i]);
             }
             break;
 

@@ -132,6 +132,7 @@ static void ast_free_node(ASTNode* node) {
             }
             if (node->data.type_decl.field_count > 0) {
                 free(node->data.type_decl.fields);
+                free(node->data.type_decl.is_pub);
             }
             break;
 
