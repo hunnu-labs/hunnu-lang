@@ -189,6 +189,19 @@ ASTNode* parser_parse_declaration(Parser* parser) {
         char* name = strdup(parser->current->lexeme);
         parser_advance(parser);
         
+        /* Check for method syntax: Type.method */
+        char* type_name = NULL;
+        if (parser_match(parser, TOKEN_DOT)) {
+            type_name = name; /* The first ident is the type name */
+            if (!parser_check(parser, TOKEN_IDENT)) {
+                parser_error(parser, "Expected method name after 'Type.'");
+                free(type_name);
+                return NULL;
+            }
+            name = strdup(parser->current->lexeme);
+            parser_advance(parser);
+        }
+        
         char** params = NULL;
         size_t param_count = 0;
         
@@ -198,8 +211,9 @@ ASTNode* parser_parse_declaration(Parser* parser) {
                     parser_consume(parser, TOKEN_COMMA, "Expected ',' between parameters");
                 }
                 
-                if (!parser_check(parser, TOKEN_IDENT)) {
+                if (!parser_check(parser, TOKEN_IDENT) && !parser_check(parser, TOKEN_SELF)) {
                     parser_error(parser, "Expected parameter name");
+                    if (type_name) free(type_name);
                     return NULL;
                 }
                 
@@ -217,9 +231,23 @@ ASTNode* parser_parse_declaration(Parser* parser) {
         
         ASTNode* body = parser_parse_block(parser);
         
-        return ast_fn_decl_create(name, params, param_count, body,
+        ASTNode* fn_node = ast_fn_decl_create(name, params, param_count, body,
                             parser->previous->line,
                             parser->previous->column);
+        
+        if (type_name) {
+            /* Store type name in fn_decl for method binding */
+            fn_node->data.fn_decl.name = name;
+            /* We'll use the same AST_FN_DECL node but store type_name info */
+            /* For now, store it by prepending type_name to name with a dot */
+            char* full_name = (char*)malloc(strlen(type_name) + strlen(name) + 2);
+            sprintf(full_name, "%s.%s", type_name, name);
+            free(fn_node->data.fn_decl.name);
+            fn_node->data.fn_decl.name = full_name;
+            free(type_name);
+        }
+        
+        return fn_node;
     }
     
     if (parser_match(parser, TOKEN_EXTERN)) {
@@ -311,14 +339,18 @@ ASTNode* parser_parse_declaration(Parser* parser) {
         
         char** fields = NULL;
         size_t field_count = 0;
-        size_t field_capacity = 4;
+        size_t field_capacity = 8;
         fields = (char**)malloc(sizeof(char*) * field_capacity);
+        /* We don't need visibility info in the AST - runtime decides */
         
         while (!parser_check(parser, TOKEN_RBRACE) && !parser_check(parser, TOKEN_EOF)) {
             if (field_count > 0) {
                 if (parser_check(parser, TOKEN_COMMA)) {
                     parser_advance(parser);
                 }
+            }
+            
+            if (parser_match(parser, TOKEN_PUB)) {
             }
             
             if (!parser_check(parser, TOKEN_IDENT)) {
@@ -331,7 +363,6 @@ ASTNode* parser_parse_declaration(Parser* parser) {
             
             /* Optional type annotation: x: int */
             if (parser_match(parser, TOKEN_COLON)) {
-                /* Skip type annotation for now */
                 if (parser_check(parser, TOKEN_IDENT)) {
                     parser_advance(parser);
                 }
@@ -459,9 +490,11 @@ ASTNode* parser_parse_print_statement(Parser* parser) {
 }
 
 ASTNode* parser_parse_while_statement(Parser* parser) {
-    parser_consume(parser, TOKEN_LPAREN, "Expected '(' after 'while'");
+    int has_parens = parser_match(parser, TOKEN_LPAREN);
     ASTNode* condition = parser_parse_expression(parser);
-    parser_consume(parser, TOKEN_RPAREN, "Expected ')' after condition");
+    if (has_parens) {
+        parser_consume(parser, TOKEN_RPAREN, "Expected ')' after condition");
+    }
     
     ASTNode* body = parser_parse_statement(parser);
     
@@ -715,17 +748,44 @@ ASTNode* parser_parse_unary(Parser* parser) {
 ASTNode* parser_parse_postfix(Parser* parser) {
     ASTNode* expr = parser_parse_primary(parser);
     
-    /* Handle field access: expr.field */
+    /* Handle field access: expr.field, method calls: expr.method(args) */
     while (parser_match(parser, TOKEN_DOT)) {
         if (!parser_check(parser, TOKEN_IDENT)) {
-            parser_error(parser, "Expected field name after '.'");
+            parser_error(parser, "Expected field or method name after '.'");
             return expr;
         }
-        char* field = strdup(parser->current->lexeme);
+        char* name = strdup(parser->current->lexeme);
         parser_advance(parser);
-        expr = ast_field_access_create(expr, field,
-                                        parser->previous->line,
-                                        parser->previous->column);
+        
+        /* Check if it's a method call: expr.method(args) */
+        if (parser_match(parser, TOKEN_LPAREN)) {
+            ASTNode** args = (ASTNode**)malloc(sizeof(ASTNode*) * 4);
+            size_t arg_count = 0;
+            size_t arg_capacity = 4;
+            
+            if (!parser_check(parser, TOKEN_RPAREN)) {
+                args[arg_count++] = parser_parse_expression(parser);
+                while (parser_match(parser, TOKEN_COMMA)) {
+                    if (arg_count >= arg_capacity) {
+                        arg_capacity *= 2;
+                        args = (ASTNode**)realloc(args, sizeof(ASTNode*) * arg_capacity);
+                    }
+                    args[arg_count++] = parser_parse_expression(parser);
+                }
+            }
+            
+            parser_consume(parser, TOKEN_RPAREN, "Expected ')' after method arguments");
+            expr = ast_method_call_create(expr, name, args, arg_count,
+                                           parser->previous->line,
+                                           parser->previous->column);
+            free(name);
+        } else {
+            /* Field access */
+            expr = ast_field_access_create(expr, name,
+                                            parser->previous->line,
+                                            parser->previous->column);
+            free(name);
+        }
     }
     
     return expr;
@@ -774,6 +834,12 @@ ASTNode* parser_parse_primary(Parser* parser) {
                           parser->previous->column);
     }
     
+    if (parser_match(parser, TOKEN_SELF)) {
+        return ast_identifier_create("self",
+                          parser->previous->line,
+                          parser->previous->column);
+    }
+
     if (parser_match(parser, TOKEN_IDENT)) {
         char* name = strdup(parser->previous->lexeme);
         
@@ -824,7 +890,51 @@ ASTNode* parser_parse_primary(Parser* parser) {
                                    parser->previous->column);
         }
         
-        /* Generic function call for any identifier followed by ( */
+        /* Handle ( - either function call or struct literal */
+        /* Check for struct literal BEFORE consuming ( to avoid lexer advancing past field name */
+        if (parser_check(parser, TOKEN_LPAREN) && lexer_peek_struct_field(parser->lexer)) {
+            parser_advance(parser);
+            char** field_names = (char**)malloc(sizeof(char*) * 4);
+            ASTNode** field_values = (ASTNode**)malloc(sizeof(ASTNode*) * 4);
+            size_t field_count = 0;
+            size_t field_cap = 4;
+            
+            while (!parser_check(parser, TOKEN_RPAREN) && !parser_check(parser, TOKEN_EOF)) {
+                if (field_count > 0) {
+                    if (parser_check(parser, TOKEN_COMMA)) {
+                        parser_advance(parser);
+                    }
+                }
+                
+                if (!parser_check(parser, TOKEN_IDENT)) {
+                    parser_error(parser, "Expected field name");
+                    break;
+                }
+                field_names[field_count] = strdup(parser->current->lexeme);
+                parser_advance(parser);
+                
+                parser_consume(parser, TOKEN_COLON, "Expected ':' after field name");
+                
+                field_values[field_count] = parser_parse_expression(parser);
+                field_count++;
+                
+                if (field_count >= field_cap) {
+                    field_cap *= 2;
+                    field_names = (char**)realloc(field_names, sizeof(char*) * field_cap);
+                    field_values = (ASTNode**)realloc(field_values, sizeof(ASTNode*) * field_cap);
+                }
+            }
+            
+            parser_consume(parser, TOKEN_RPAREN, "Expected ')' after struct fields");
+            ASTNode* result = ast_struct_instance_create(name, field_names, field_values,
+                                                         field_count,
+                                                         parser->previous->line,
+                                                         parser->previous->column);
+            free(name);
+            return result;
+        }
+        
+        /* Regular function call */
         if (parser_match(parser, TOKEN_LPAREN)) {
             ASTNode** args = (ASTNode**)malloc(sizeof(ASTNode*) * 4);
             size_t arg_count = 0;
@@ -843,8 +953,8 @@ ASTNode* parser_parse_primary(Parser* parser) {
             
             parser_consume(parser, TOKEN_RPAREN, "Expected ')' after function arguments");
             return ast_call_expr_create(name, args, arg_count,
-                                   parser->previous->line,
-                                   parser->previous->column);
+                                        parser->previous->line,
+                                        parser->previous->column);
         }
         
         ASTNode* identifier = ast_identifier_create(name,

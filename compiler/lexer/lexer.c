@@ -42,6 +42,8 @@ static const char* keyword_names[] = {
     "catch",      "барих",    // catch
     "finally",    "эцэст",    // finally
     "type",       "төрөл",    // type (struct)
+    "pub",        "нийт",     // public field
+    "self",       "өөрөө",    // self reference
     NULL
 };
 
@@ -66,6 +68,8 @@ static TokenType keyword_types[] = {
     TOKEN_CATCH,  TOKEN_CATCH,
     TOKEN_FINALLY, TOKEN_FINALLY,
     TOKEN_TYPE,   TOKEN_TYPE,
+    TOKEN_PUB,    TOKEN_PUB,
+    TOKEN_SELF,   TOKEN_SELF,
     TOKEN_UNKNOWN
 };
 
@@ -467,4 +471,23 @@ Token* lexer_next_token(Lexer* lexer) {
     i18n_error(ERR_UNKNOWN_CHARACTER, unknown);
     fprintf(stderr, "\n");
     return token_new(TOKEN_UNKNOWN, unknown, lexer->line, lexer->column);
+}
+
+int lexer_peek_struct_field(Lexer* lexer) {
+    size_t pos = lexer->current;
+    while (pos < lexer->length && (lexer->source[pos] == ' ' || lexer->source[pos] == '\t'))
+        pos++;
+    if (pos >= lexer->length) return 0;
+    /* skip optional ( opening parenthesis */
+    if (lexer->source[pos] == '(') pos++;
+    while (pos < lexer->length && (lexer->source[pos] == ' ' || lexer->source[pos] == '\t'))
+        pos++;
+    if (pos >= lexer->length) return 0;
+    if (!isalpha(lexer->source[pos]) && lexer->source[pos] != '_') return 0;
+    pos++;
+    while (pos < lexer->length && (isalnum(lexer->source[pos]) || lexer->source[pos] == '_'))
+        pos++;
+    while (pos < lexer->length && (lexer->source[pos] == ' ' || lexer->source[pos] == '\t'))
+        pos++;
+    return (pos < lexer->length && lexer->source[pos] == ':');
 }

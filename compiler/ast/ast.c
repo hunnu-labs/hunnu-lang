@@ -38,7 +38,9 @@ static const char* ast_type_names[] = {
     "TYPE_DECL",
     "FIELD_ACCESS",
     "ADDRESS_OF",
-    "DEREFERENCE"
+    "DEREFERENCE",
+    "STRUCT_INSTANCE",
+    "METHOD_CALL"
 };
 
 /**
@@ -47,7 +49,7 @@ static const char* ast_type_names[] = {
  * @return String name
  */
 const char* ast_node_type_to_string(ASTNodeType type) {
-    if (type >= 0 && type <= AST_INDEX_ASSIGN) {
+    if (type >= 0 && type < (int)(sizeof(ast_type_names) / sizeof(ast_type_names[0]))) {
         return ast_type_names[type];
     }
     return "UNKNOWN";
@@ -408,6 +410,34 @@ ASTNode* ast_dereference_create(ASTNode* operand, int32_t line, int32_t column) 
     node->line = line;
     node->column = column;
     node->data.dereference.operand = operand;
+    return node;
+}
+
+ASTNode* ast_struct_instance_create(const char* type_name, char** field_names,
+                                     ASTNode** field_values, size_t field_count,
+                                     int32_t line, int32_t column) {
+    ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
+    node->type = AST_STRUCT_INSTANCE;
+    node->line = line;
+    node->column = column;
+    node->data.struct_instance.type_name = strdup(type_name);
+    node->data.struct_instance.field_names = field_names;
+    node->data.struct_instance.field_values = field_values;
+    node->data.struct_instance.field_count = field_count;
+    return node;
+}
+
+ASTNode* ast_method_call_create(ASTNode* object, const char* method,
+                                 ASTNode** args, size_t arg_count,
+                                 int32_t line, int32_t column) {
+    ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
+    node->type = AST_METHOD_CALL;
+    node->line = line;
+    node->column = column;
+    node->data.method_call.object = object;
+    node->data.method_call.method = strdup(method);
+    node->data.method_call.args = args;
+    node->data.method_call.arg_count = arg_count;
     return node;
 }
 

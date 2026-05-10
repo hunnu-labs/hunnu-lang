@@ -191,7 +191,7 @@ impl Parser {
                     self.consume(TokenType::Comma, "Expected ',' between parameters");
                 }
                 
-                if !self.check(TokenType::Ident) {
+                if !self.check(TokenType::Ident) && !self.check(TokenType::SelfToken) {
                     self.error("Expected parameter name");
                     return Err("Parse error".to_string());
                 }
@@ -240,7 +240,7 @@ impl Parser {
                     self.consume(TokenType::Comma, "Expected ',' between parameters");
                 }
                 
-                if !self.check(TokenType::Ident) {
+                if !self.check(TokenType::Ident) && !self.check(TokenType::SelfToken) {
                     self.error("Expected parameter name");
                     return Err("Parse error".to_string());
                 }
@@ -322,7 +322,11 @@ impl Parser {
                 }
             }
             
-            if !self.check(TokenType::Ident) {
+            if self.check(TokenType::Pub) {
+                self.advance();
+            }
+
+            if !self.check(TokenType::Ident) && !self.check(TokenType::SelfToken) {
                 self.error("Expected field name");
                 break;
             }
@@ -877,7 +881,7 @@ impl Parser {
             });
         }
         
-        if self.match_token(TokenType::Ident) {
+        if self.match_token(TokenType::Ident) || self.match_token(TokenType::SelfToken) {
             let token = self.previous().cloned().unwrap();
             let name = token.lexeme.clone();
             let line = token.line;

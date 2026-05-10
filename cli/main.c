@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include "cli.h"
 #include "compiler/import.h"
 #include "compiler/lexer/lexer.h"
@@ -9,6 +10,7 @@
 #include "compiler/interpreter/interpreter.h"
 #include "compiler/vm/compiler.h"
 #include "compiler/vm/vm.h"
+#include "compiler/transpile/transpile.h"
 #include "compiler/i18n/i18n.h"
 
 #if defined(HUNNU_HAVE_RUST_COMPILER)
@@ -457,31 +459,62 @@ int main(int argc, char* argv[]) {
             }
         }
         
-        printf("Compiling %s to %s (Month 3 AOT)...\n", filename, output);
-        printf("Note: LLVM codegen is in compiler-rust/ (feature-gated: `--features llvm-codegen`).\n");
-        printf("Using system C compiler as fallback.\n");
+        printf("Compiling %s to %s...\n", filename, output);
         
-        /* Use system C compiler as temporary solution */
-        char command[512];
-        snprintf(command, sizeof(command), "gcc -o %s -x c - -I. 2>&1", output);
-        
-        FILE* fp = popen(command, "w");
-        if (!fp) {
-            fprintf(stderr, "Error: Failed to run compiler\n");
+        int source_size = 0;
+        char* source = read_source_with_imports(filename, &source_size);
+        if (!source) {
             return 1;
         }
         
-        /* Read source and write to compiler */
-        int source_size = 0;
-        char* source = read_source_with_imports(filename, &source_size);
-        if (source) {
-            fwrite(source, 1, source_size, fp);
+        Lexer* lexer = lexer_new(source);
+        ASTNode* program = parse(lexer);
+        lexer_free(lexer);
+        
+        if (!program) {
+            i18n_error(ERR_FAILED_PARSE);
+            fprintf(stderr, "\n");
             free(source);
+            return 1;
         }
         
-        pclose(fp);
-        printf("Compilation complete: %s\n", output);
+        char* c_code = transpile_to_c(program);
+        if (!c_code) {
+            fprintf(stderr, "Error: Failed to transpile\n");
+            ast_free(program);
+            free(source);
+            return 1;
+        }
         
+        ast_free(program);
+        free(source);
+        
+        /* Write C code to temp file and compile */
+        char tmpfile[512];
+        snprintf(tmpfile, sizeof(tmpfile), "/tmp/hunnu_build_%d.c", getpid());
+        FILE* tmp = fopen(tmpfile, "w");
+        if (!tmp) {
+            fprintf(stderr, "Error: Failed to create temp file\n");
+            free(c_code);
+            return 1;
+        }
+        fprintf(tmp, "%s", c_code);
+        fclose(tmp);
+        
+        char command[1024];
+        snprintf(command, sizeof(command), "gcc -o %s %s -Wno-int-to-pointer-cast -Wno-pointer-to-int-cast 2>&1", output, tmpfile);
+        
+        int status = system(command);
+        remove(tmpfile);
+        
+        if (status != 0) {
+            fprintf(stderr, "Error: Compilation failed (gcc exit code %d)\n", status);
+            free(c_code);
+            return 1;
+        }
+        
+        printf("Compilation complete: %s\n", output);
+        free(c_code);
         return 0;
     }
 

@@ -148,6 +148,29 @@ static void ast_free_node(ASTNode* node) {
             ast_free_node(node->data.dereference.operand);
             break;
 
+        case AST_STRUCT_INSTANCE:
+            free(node->data.struct_instance.type_name);
+            for (size_t i = 0; i < node->data.struct_instance.field_count; i++) {
+                free(node->data.struct_instance.field_names[i]);
+                ast_free_node(node->data.struct_instance.field_values[i]);
+            }
+            if (node->data.struct_instance.field_count > 0) {
+                free(node->data.struct_instance.field_names);
+                free(node->data.struct_instance.field_values);
+            }
+            break;
+
+        case AST_METHOD_CALL:
+            ast_free_node(node->data.method_call.object);
+            free(node->data.method_call.method);
+            for (size_t i = 0; i < node->data.method_call.arg_count; i++) {
+                ast_free_node(node->data.method_call.args[i]);
+            }
+            if (node->data.method_call.arg_count > 0) {
+                free(node->data.method_call.args);
+            }
+            break;
+
         case AST_WHILE_STMT:
         case AST_FOR_STMT:
         case AST_BREAK_STMT:

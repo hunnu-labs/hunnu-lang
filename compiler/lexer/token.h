@@ -37,6 +37,8 @@ typedef enum {
     TOKEN_TRY,
     TOKEN_CATCH,
     TOKEN_FINALLY,
+    TOKEN_PUB,
+    TOKEN_SELF,
     TOKEN_TYPE,
     TOKEN_DOT,
     TOKEN_AMPERSAND,

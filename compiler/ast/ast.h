@@ -41,6 +41,8 @@ typedef enum {
     AST_FIELD_ACCESS,
     AST_ADDRESS_OF,
     AST_DEREFERENCE,
+    AST_STRUCT_INSTANCE,
+    AST_METHOD_CALL,
 } ASTNodeType;
 
 /** AST node structure */
@@ -227,6 +229,22 @@ typedef struct ASTNode {
         struct {
             struct ASTNode* operand;
         } dereference;
+
+        /** Struct instance: TypeName { field: expr, ... } */
+        struct {
+            char* type_name;
+            char** field_names;
+            struct ASTNode** field_values;
+            size_t field_count;
+        } struct_instance;
+
+        /** Method call: obj.method(args) */
+        struct {
+            struct ASTNode* object;
+            char* method;
+            struct ASTNode** args;
+            size_t arg_count;
+        } method_call;
     } data;
 } ASTNode;
 
@@ -270,6 +288,12 @@ ASTNode* ast_field_access_create(ASTNode* object, const char* field,
                                   int32_t line, int32_t column);
 ASTNode* ast_address_of_create(ASTNode* operand, int32_t line, int32_t column);
 ASTNode* ast_dereference_create(ASTNode* operand, int32_t line, int32_t column);
+ASTNode* ast_struct_instance_create(const char* type_name, char** field_names,
+                                     ASTNode** field_values, size_t field_count,
+                                     int32_t line, int32_t column);
+ASTNode* ast_method_call_create(ASTNode* object, const char* method,
+                                 ASTNode** args, size_t arg_count,
+                                 int32_t line, int32_t column);
 
 void ast_free(ASTNode* node);
 void ast_print(ASTNode* node, int indent);

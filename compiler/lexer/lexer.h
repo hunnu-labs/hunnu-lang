@@ -100,4 +100,11 @@ Token* lexer_read_string(Lexer* lexer);
  */
 TokenType lexer_check_keyword(const char* lexeme);
 
+/**
+ * @brief Peek at the source to check if upcoming content is IDENT : (struct field)
+ * @param lexer Pointer to lexer
+ * @return 1 if upcoming non-whitespace chars match IDENT : pattern, 0 otherwise
+ */
+int lexer_peek_struct_field(Lexer* lexer);
+
 #endif
