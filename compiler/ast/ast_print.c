@@ -64,6 +64,10 @@ static void ast_print_node(ASTNode* node, int indent) {
             printf(" (value)");
             break;
 
+        case AST_TRAIT_DECL:
+        case AST_IMPL_DECL:
+            break;
+
         default:
             break;
     }
@@ -228,10 +232,18 @@ static void ast_print_node(ASTNode* node, int indent) {
 
         case AST_CLASS_DECL:
             indent_print(indent);
-            printf("CLASS_DECL (%s) with %zu fields, %zu methods\n",
-                   node->data.class_decl.name,
-                   node->data.class_decl.field_count,
-                   node->data.class_decl.method_count);
+            if (node->data.class_decl.parent_name) {
+                printf("CLASS_DECL (%s : %s) with %zu fields, %zu methods\n",
+                       node->data.class_decl.name,
+                       node->data.class_decl.parent_name,
+                       node->data.class_decl.field_count,
+                       node->data.class_decl.method_count);
+            } else {
+                printf("CLASS_DECL (%s) with %zu fields, %zu methods\n",
+                       node->data.class_decl.name,
+                       node->data.class_decl.field_count,
+                       node->data.class_decl.method_count);
+            }
             for (size_t i = 0; i < node->data.class_decl.field_count; i++) {
                 indent_print(indent + 1);
                 printf("field: %s %s\n",
@@ -267,6 +279,32 @@ static void ast_print_node(ASTNode* node, int indent) {
             indent_print(indent + 1);
             printf("value:\n");
             ast_print_node(node->data.field_assign.value, indent + 2);
+            break;
+
+        case AST_TRAIT_DECL:
+            indent_print(indent);
+            printf("TRAIT_DECL (%s) with %zu methods\n",
+                   node->data.trait_decl.name,
+                   node->data.trait_decl.method_count);
+            for (size_t i = 0; i < node->data.trait_decl.method_count; i++) {
+                indent_print(indent + 1);
+                printf("method: %s (params: %zu)\n",
+                       node->data.trait_decl.method_names[i],
+                       node->data.trait_decl.method_param_counts[i]);
+            }
+            break;
+
+        case AST_IMPL_DECL:
+            indent_print(indent);
+            printf("IMPL_DECL (impl %s for %s with %zu methods)\n",
+                   node->data.impl_decl.trait_name,
+                   node->data.impl_decl.type_name,
+                   node->data.impl_decl.method_count);
+            for (size_t i = 0; i < node->data.impl_decl.method_count; i++) {
+                indent_print(indent + 1);
+                printf("method %zu:\n", i);
+                ast_print_node(node->data.impl_decl.methods[i], indent + 2);
+            }
             break;
 
         default:

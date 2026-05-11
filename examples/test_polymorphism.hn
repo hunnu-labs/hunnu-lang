@@ -1,0 +1,53 @@
+fn main() {
+    class Shape {
+        pub name: str
+
+        fn new(self, name) {
+            self.name = name
+        }
+
+        fn area(self) {
+            return 0
+        }
+
+        fn describe(self) {
+            return self.name
+        }
+    }
+
+    class Circle : Shape {
+        pub radius: int
+
+        fn new(self, name, r) {
+            self.name = name
+            self.radius = r
+        }
+
+        fn area(self) {
+            return 3 * self.radius * self.radius
+        }
+    }
+
+    class Rectangle : Shape {
+        pub w: int
+        pub h: int
+
+        fn new(self, name, w, h) {
+            self.name = name
+            self.w = w
+            self.h = h
+        }
+
+        fn area(self) {
+            return self.w * self.h
+        }
+    }
+
+    let c = new Circle("Circle A", 5)
+    print(c.describe())
+    print(c.area())
+
+    let r = new Rectangle("Rect B", 3, 4)
+    print(r.describe())
+    print(r.area())
+}

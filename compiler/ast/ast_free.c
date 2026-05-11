@@ -174,6 +174,7 @@ static void ast_free_node(ASTNode* node) {
 
         case AST_CLASS_DECL:
             free(node->data.class_decl.name);
+            free(node->data.class_decl.parent_name);
             for (size_t i = 0; i < node->data.class_decl.field_count; i++) {
                 free(node->data.class_decl.fields[i]);
             }
@@ -202,6 +203,24 @@ static void ast_free_node(ASTNode* node) {
             ast_free_node(node->data.field_assign.object);
             free(node->data.field_assign.field);
             ast_free_node(node->data.field_assign.value);
+            break;
+
+        case AST_TRAIT_DECL:
+            free(node->data.trait_decl.name);
+            for (size_t i = 0; i < node->data.trait_decl.method_count; i++) {
+                free(node->data.trait_decl.method_names[i]);
+            }
+            free(node->data.trait_decl.method_names);
+            free(node->data.trait_decl.method_param_counts);
+            break;
+
+        case AST_IMPL_DECL:
+            free(node->data.impl_decl.trait_name);
+            free(node->data.impl_decl.type_name);
+            for (size_t i = 0; i < node->data.impl_decl.method_count; i++) {
+                ast_free_node(node->data.impl_decl.methods[i]);
+            }
+            free(node->data.impl_decl.methods);
             break;
 
         case AST_WHILE_STMT:

@@ -46,6 +46,8 @@ static const char* keyword_names[] = {
     "new",        "шинэ",     // constructor/instantiation
     "pub",        "нийт",     // public field
     "self",       "өөрөө",    // self reference
+    "trait",      "ers",     // trait declaration
+    "impl",       "хэрэгжүүлэх", // implementation
     NULL
 };
 
@@ -74,6 +76,8 @@ static TokenType keyword_types[] = {
     TOKEN_NEW,    TOKEN_NEW,
     TOKEN_PUB,    TOKEN_PUB,
     TOKEN_SELF,   TOKEN_SELF,
+    TOKEN_TRAIT,  TOKEN_TRAIT,
+    TOKEN_IMPL,   TOKEN_IMPL,
     TOKEN_UNKNOWN
 };
 

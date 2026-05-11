@@ -40,7 +40,7 @@ echo ""
 
 # --- C Interpreter Tests ---
 echo "--- C Interpreter ---"
-for f in examples/test_*.hn examples/main.hn test_struct.hn test_self.hn; do
+for f in examples/test_*.hn examples/main.hn; do
     if [ ! -f "$f" ]; then continue; fi
     name="$(basename "$f")"
     run_test "run $name" "$HUNNU run $f" ""
@@ -48,7 +48,7 @@ done
 
 # --- AOT Compile Tests ---
 echo "--- AOT Compiler ---"
-for f in examples/main.hn test_struct.hn; do
+for f in examples/main.hn examples/test_oop.hn examples/test_class_top.hn; do
     if [ ! -f "$f" ]; then continue; fi
     name="$(basename "$f")"
     outname="/tmp/hunnu_test_${name%.hn}"

@@ -397,6 +397,18 @@ ASTNode* parser_parse_declaration(Parser* parser) {
         char* class_name = strdup(parser->current->lexeme);
         parser_advance(parser);
         
+        /* Check for inheritance: class Child : Parent */
+        char* parent_name = NULL;
+        if (parser_match(parser, TOKEN_COLON)) {
+            if (!parser_check(parser, TOKEN_IDENT)) {
+                parser_error(parser, "Expected parent class name after ':'");
+                free(class_name);
+                return NULL;
+            }
+            parent_name = strdup(parser->current->lexeme);
+            parser_advance(parser);
+        }
+        
         parser_consume(parser, TOKEN_LBRACE, "Expected '{' after class name");
         
         char** fields = NULL;
@@ -522,12 +534,182 @@ ASTNode* parser_parse_declaration(Parser* parser) {
         
         parser_consume(parser, TOKEN_RBRACE, "Expected '}' after class body");
         
-        return ast_class_decl_create(class_name, fields, is_pub, field_count,
-                                      constructor, methods, method_count,
-                                      parser->previous->line,
-                                      parser->previous->column);
+        ASTNode* result = ast_class_decl_create(class_name, parent_name, fields, is_pub, field_count,
+                                       constructor, methods, method_count,
+                                       parser->previous->line,
+                                       parser->previous->column);
+        free(class_name);
+        if (parent_name) free(parent_name);
+        return result;
     }
-    
+
+    if (parser_match(parser, TOKEN_TRAIT)) {
+        if (!parser_check(parser, TOKEN_IDENT)) {
+            parser_error(parser, "Expected trait name after 'trait'");
+            return NULL;
+        }
+        char* trait_name = strdup(parser->current->lexeme);
+        parser_advance(parser);
+
+        parser_consume(parser, TOKEN_LBRACE, "Expected '{' after trait name");
+
+        char** method_names = NULL;
+        size_t* method_param_counts = NULL;
+        size_t method_count = 0;
+        size_t method_capacity = 8;
+        method_names = (char**)malloc(sizeof(char*) * method_capacity);
+        method_param_counts = (size_t*)malloc(sizeof(size_t) * method_capacity);
+
+        while (!parser_check(parser, TOKEN_RBRACE) && !parser_check(parser, TOKEN_EOF)) {
+            parser_skip_newlines(parser);
+            if (parser_check(parser, TOKEN_RBRACE)) break;
+
+            if (!parser_check(parser, TOKEN_FN)) {
+                parser_error(parser, "Expected 'fn' in trait body");
+                break;
+            }
+            parser_advance(parser);
+
+            if (!parser_check(parser, TOKEN_IDENT) && !parser_check(parser, TOKEN_SELF)) {
+                parser_error(parser, "Expected method name in trait");
+                break;
+            }
+            method_names[method_count] = strdup(parser->current->lexeme);
+            parser_advance(parser);
+
+            parser_consume(parser, TOKEN_LPAREN, "Expected '(' after method name");
+            size_t param_count = 0;
+            while (!parser_check(parser, TOKEN_RPAREN)) {
+                if (param_count > 0)
+                    parser_consume(parser, TOKEN_COMMA, "Expected ',' between parameters");
+                if (!parser_check(parser, TOKEN_IDENT) && !parser_check(parser, TOKEN_SELF)) {
+                    parser_error(parser, "Expected parameter name");
+                    break;
+                }
+                parser_advance(parser);
+                param_count++;
+            }
+            parser_consume(parser, TOKEN_RPAREN, "Expected ')' after parameters");
+            method_param_counts[method_count] = param_count;
+            method_count++;
+
+            if (method_count >= method_capacity) {
+                method_capacity *= 2;
+                method_names = (char**)realloc(method_names, sizeof(char*) * method_capacity);
+                method_param_counts = (size_t*)realloc(method_param_counts, sizeof(size_t) * method_capacity);
+            }
+        }
+        parser_consume(parser, TOKEN_RBRACE, "Expected '}' after trait body");
+
+        return ast_trait_decl_create(trait_name, method_names, method_param_counts, method_count,
+                                     parser->previous->line, parser->previous->column);
+    }
+
+    if (parser_match(parser, TOKEN_IMPL)) {
+        /* Parse: impl TraitName for TypeName { ... } */
+        if (!parser_check(parser, TOKEN_IDENT)) {
+            parser_error(parser, "Expected trait name after 'impl'");
+            return NULL;
+        }
+        char* impl_trait_name = strdup(parser->current->lexeme);
+        parser_advance(parser);
+
+        /* 'for' is TOKEN_FOR in the lexer */
+        if (!parser_match(parser, TOKEN_FOR)) {
+            parser_error(parser, "Expected 'for' after trait name in impl");
+            free(impl_trait_name);
+            return NULL;
+        }
+
+        if (!parser_check(parser, TOKEN_IDENT)) {
+            parser_error(parser, "Expected type name after 'for' in impl");
+            free(impl_trait_name);
+            return NULL;
+        }
+        char* impl_type_name = strdup(parser->current->lexeme);
+        parser_advance(parser);
+
+        parser_consume(parser, TOKEN_LBRACE, "Expected '{' after impl type name");
+
+        ASTNode** impl_methods = NULL;
+        size_t impl_method_count = 0;
+        size_t impl_method_capacity = 8;
+        impl_methods = (ASTNode**)malloc(sizeof(ASTNode*) * impl_method_capacity);
+
+        while (!parser_check(parser, TOKEN_RBRACE) && !parser_check(parser, TOKEN_EOF)) {
+            parser_skip_newlines(parser);
+            if (parser_check(parser, TOKEN_RBRACE)) break;
+
+            if (!parser_check(parser, TOKEN_FN)) {
+                parser_error(parser, "Expected 'fn' in impl body");
+                break;
+            }
+            parser_advance(parser);
+
+            if (!parser_check(parser, TOKEN_IDENT) && !parser_check(parser, TOKEN_SELF)) {
+                parser_error(parser, "Expected method name in impl");
+                break;
+            }
+            char* impl_method_name = strdup(parser->current->lexeme);
+            parser_advance(parser);
+
+            /* Parse parameters */
+            parser_consume(parser, TOKEN_LPAREN, "Expected '(' after method name");
+            char** params = NULL;
+            size_t param_count = 0;
+            size_t param_capacity = 4;
+            params = (char**)malloc(sizeof(char*) * param_capacity);
+
+            while (!parser_check(parser, TOKEN_RPAREN)) {
+                if (param_count > 0)
+                    parser_consume(parser, TOKEN_COMMA, "Expected ',' between parameters");
+                TokenType pt = parser->current->type;
+                if (pt == TOKEN_LPAREN || pt == TOKEN_RPAREN || pt == TOKEN_LBRACE ||
+                    pt == TOKEN_RBRACE || pt == TOKEN_EOF || pt == TOKEN_UNKNOWN) {
+                    parser_error(parser, "Expected parameter name");
+                    break;
+                }
+                params[param_count++] = strdup(parser->current->lexeme);
+                parser_advance(parser);
+                if (param_count >= param_capacity) {
+                    param_capacity *= 2;
+                    params = (char**)realloc(params, sizeof(char*) * param_capacity);
+                }
+            }
+            parser_consume(parser, TOKEN_RPAREN, "Expected ')' after parameters");
+
+            /* Parse method body */
+            if (!parser_check(parser, TOKEN_LBRACE)) {
+                parser_error(parser, "Expected method body in impl");
+                for (size_t i = 0; i < param_count; i++) free(params[i]);
+                free(params);
+                free(impl_method_name);
+                break;
+            }
+            ASTNode* impl_body = parser_parse_block(parser);
+
+            /* Store method as TypeName.methodName for dispatch */
+            char* full_impl_name = (char*)malloc(strlen(impl_type_name) + strlen(impl_method_name) + 2);
+            sprintf(full_impl_name, "%s.%s", impl_type_name, impl_method_name);
+            free(impl_method_name);
+
+            ASTNode* impl_method_node = ast_fn_decl_create(full_impl_name, params, param_count, impl_body,
+                                              parser->previous->line,
+                                              parser->previous->column);
+            free(full_impl_name);
+
+            if (impl_method_count >= impl_method_capacity) {
+                impl_method_capacity *= 2;
+                impl_methods = (ASTNode**)realloc(impl_methods, sizeof(ASTNode*) * impl_method_capacity);
+            }
+            impl_methods[impl_method_count++] = impl_method_node;
+        }
+        parser_consume(parser, TOKEN_RBRACE, "Expected '}' after impl body");
+
+        return ast_impl_decl_create(impl_trait_name, impl_type_name, impl_methods, impl_method_count,
+                                    parser->previous->line, parser->previous->column);
+    }
+
     return parser_parse_statement(parser);
 }
 

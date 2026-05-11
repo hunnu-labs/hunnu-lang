@@ -46,6 +46,8 @@ typedef enum {
     AST_CLASS_DECL,
     AST_NEW_EXPR,
     AST_FIELD_ASSIGN,
+    AST_TRAIT_DECL,
+    AST_IMPL_DECL,
 } ASTNodeType;
 
 /** AST node structure */
@@ -253,6 +255,7 @@ typedef struct ASTNode {
         /** Class declaration: class Name { ... } */
         struct {
             char* name;                      /* Class name */
+            char* parent_name;               /* Parent class name, NULL for no parent */
             char** fields;                   /* Field names */
             int* is_pub;                     /* Field visibility */
             size_t field_count;              /* Number of fields */
@@ -274,6 +277,22 @@ typedef struct ASTNode {
             char* field;                     /* Field name */
             struct ASTNode* value;           /* Value to assign */
         } field_assign;
+
+        /** Trait declaration: trait Name { fn method(self); ... } */
+        struct {
+            char* name;                      /* Trait name */
+            char** method_names;             /* Method names */
+            size_t* method_param_counts;     /* Parameter counts for each method */
+            size_t method_count;             /* Number of methods */
+        } trait_decl;
+
+        /** Implementation: impl Trait for Type { fn method(self) { ... } } */
+        struct {
+            char* trait_name;                /* Trait name */
+            char* type_name;                 /* Type name */
+            struct ASTNode** methods;         /* Method implementations */
+            size_t method_count;             /* Number of methods */
+        } impl_decl;
     } data;
 } ASTNode;
 
@@ -323,14 +342,16 @@ ASTNode* ast_struct_instance_create(const char* type_name, char** field_names,
 ASTNode* ast_method_call_create(ASTNode* object, const char* method,
                                  ASTNode** args, size_t arg_count,
                                  int32_t line, int32_t column);
-ASTNode* ast_class_decl_create(const char* name, char** fields, int* is_pub,
-                                size_t field_count, ASTNode* constructor,
-                                ASTNode** methods, size_t method_count,
-                                int32_t line, int32_t column);
+ASTNode* ast_class_decl_create(const char* name, const char* parent_name, char** fields, int* is_pub,
+                                 size_t field_count, ASTNode* constructor,
+                                 ASTNode** methods, size_t method_count,
+                                 int32_t line, int32_t column);
 ASTNode* ast_new_expr_create(const char* class_name, ASTNode** args,
                               size_t arg_count, int32_t line, int32_t column);
 ASTNode* ast_field_assign_create(ASTNode* object, const char* field,
-                                  ASTNode* value, int32_t line, int32_t column);
+                                   ASTNode* value, int32_t line, int32_t column);
+ASTNode* ast_trait_decl_create(const char* name, char** method_names, size_t* method_param_counts, size_t method_count, int32_t line, int32_t column);
+ASTNode* ast_impl_decl_create(const char* trait_name, const char* type_name, ASTNode** methods, size_t method_count, int32_t line, int32_t column);
 
 void ast_free(ASTNode* node);
 void ast_print(ASTNode* node, int indent);

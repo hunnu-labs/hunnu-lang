@@ -21,6 +21,7 @@ typedef struct {
 
 typedef struct {
     char* name;
+    char* parent_name;
     char** fields;
     int* is_pub;
     size_t field_count;
@@ -103,6 +104,7 @@ void interpreter_free(Interpreter* interp) {
     }
     for (size_t i = 0; i < interp->type_count; i++) {
         free(interp->types[i].name);
+        if (interp->types[i].parent_name) free(interp->types[i].parent_name);
         for (size_t j = 0; j < interp->types[i].field_count; j++) {
             free(interp->types[i].fields[j]);
         }
@@ -116,7 +118,7 @@ void interpreter_free(Interpreter* interp) {
     free(interp);
 }
 
-static void interpreter_register_type(Interpreter* interp, const char* name, char** fields, int* is_pub, size_t field_count) {
+static void interpreter_register_type(Interpreter* interp, const char* name, const char* parent_name, char** fields, int* is_pub, size_t field_count) {
     for (size_t i = 0; i < interp->type_count; i++) {
         if (strcmp(interp->types[i].name, name) == 0) {
             return;
@@ -129,6 +131,7 @@ static void interpreter_register_type(Interpreter* interp, const char* name, cha
     }
     TypeInfo* t = &interp->types[interp->type_count++];
     t->name = strdup(name);
+    t->parent_name = parent_name ? strdup(parent_name) : NULL;
     t->fields = (char**)malloc(sizeof(char*) * field_count);
     t->is_pub = (int*)malloc(sizeof(int) * field_count);
     t->field_count = field_count;
@@ -223,7 +226,7 @@ static Value interpreter_evaluate(Interpreter* interp, ASTNode* node) {
         }
 
         case AST_TYPE_DECL: {
-            interpreter_register_type(interp, node->data.type_decl.name,
+            interpreter_register_type(interp, node->data.type_decl.name, NULL,
                                        node->data.type_decl.fields,
                                        node->data.type_decl.is_pub,
                                        node->data.type_decl.field_count);
@@ -323,12 +326,43 @@ static Value interpreter_evaluate(Interpreter* interp, ASTNode* node) {
         }
 
         case AST_CLASS_DECL: {
-            /* Register type */
+            /* Resolve parent class inheritance */
+            const char* parent_name = node->data.class_decl.parent_name;
+            TypeInfo* parent_type = parent_name ? interpreter_lookup_type(interp, parent_name) : NULL;
+
+            /* Merge fields: parent fields first, then child fields */
+            char** all_fields = NULL;
+            int* all_is_pub = NULL;
+            size_t all_field_count = 0;
+
+            if (parent_type) {
+                all_field_count = parent_type->field_count + node->data.class_decl.field_count;
+                all_fields = (char**)malloc(sizeof(char*) * all_field_count);
+                all_is_pub = (int*)malloc(sizeof(int) * all_field_count);
+                for (size_t i = 0; i < parent_type->field_count; i++) {
+                    all_fields[i] = strdup(parent_type->fields[i]);
+                    all_is_pub[i] = parent_type->is_pub[i];
+                }
+                for (size_t i = 0; i < node->data.class_decl.field_count; i++) {
+                    all_fields[parent_type->field_count + i] = strdup(node->data.class_decl.fields[i]);
+                    all_is_pub[parent_type->field_count + i] = node->data.class_decl.is_pub[i];
+                }
+            } else {
+                all_field_count = node->data.class_decl.field_count;
+                all_fields = (char**)malloc(sizeof(char*) * all_field_count);
+                all_is_pub = (int*)malloc(sizeof(int) * all_field_count);
+                for (size_t i = 0; i < all_field_count; i++) {
+                    all_fields[i] = strdup(node->data.class_decl.fields[i]);
+                    all_is_pub[i] = node->data.class_decl.is_pub[i];
+                }
+            }
+
+            /* Register type with inherited fields */
             interpreter_register_type(interp, node->data.class_decl.name,
-                                       node->data.class_decl.fields,
-                                       node->data.class_decl.is_pub,
-                                       node->data.class_decl.field_count);
-            /* Register constructor as ClassName.new if present */
+                                       parent_name,
+                                       all_fields, all_is_pub, all_field_count);
+
+            /* Register child's own constructor and methods FIRST so they take priority */
             if (node->data.class_decl.constructor) {
                 ASTNode* ctor = node->data.class_decl.constructor;
                 if (interp->user_fn_count < MAX_USER_FNS) {
@@ -339,7 +373,6 @@ static Value interpreter_evaluate(Interpreter* interp, ASTNode* node) {
                     ufn->node = ctor;
                 }
             }
-            /* Register other methods */
             for (size_t i = 0; i < node->data.class_decl.method_count; i++) {
                 ASTNode* method = node->data.class_decl.methods[i];
                 if (interp->user_fn_count < MAX_USER_FNS) {
@@ -348,6 +381,37 @@ static Value interpreter_evaluate(Interpreter* interp, ASTNode* node) {
                     ufn->node = method;
                 }
             }
+
+            /* Inherit parent methods that don't conflict with child's overrides */
+            if (parent_type) {
+                for (size_t i = 0; i < interp->user_fn_count; i++) {
+                    char* fn_name = interp->user_fns[i].name;
+                    size_t plen = strlen(parent_name);
+                    if (strncmp(fn_name, parent_name, plen) == 0 && fn_name[plen] == '.') {
+                        /* Create child version: child_name.method */
+                        const char* child_name = node->data.class_decl.name;
+                        const char* method_part = fn_name + plen;
+                        char* inherited_name = (char*)malloc(strlen(child_name) + strlen(method_part) + 1);
+                        sprintf(inherited_name, "%s%s", child_name, method_part);
+                        /* Check if child already has this method (skip if overridden) */
+                        int already_exists = 0;
+                        for (size_t j = 0; j < interp->user_fn_count; j++) {
+                            if (strcmp(interp->user_fns[j].name, inherited_name) == 0) {
+                                already_exists = 1;
+                                break;
+                            }
+                        }
+                        if (!already_exists && interp->user_fn_count < MAX_USER_FNS) {
+                            UserFn* ufn = &interp->user_fns[interp->user_fn_count++];
+                            ufn->name = inherited_name;
+                            ufn->node = interp->user_fns[i].node;
+                        } else {
+                            free(inherited_name);
+                        }
+                    }
+                }
+            }
+
             return value_create_none();
         }
 
@@ -411,10 +475,22 @@ static Value interpreter_evaluate(Interpreter* interp, ASTNode* node) {
                     size_t mname_len = strlen(t->name) + 1 + strlen(method) + 1;
                     char* mname = (char*)malloc(mname_len);
                     snprintf(mname, mname_len, "%s.%s", t->name, method);
-                    for (size_t i = 0; i < interp->user_fn_count; i++) {
-                        if (strcmp(interp->user_fns[i].name, mname) == 0) {
-                            ufn = &interp->user_fns[i];
-                            break;
+                    /* Walk up inheritance chain for static methods */
+                    TypeInfo* cur_t = t;
+                    while (cur_t) {
+                        snprintf(mname, mname_len, "%s.%s", cur_t->name, method);
+                        for (size_t i = 0; i < interp->user_fn_count; i++) {
+                            if (strcmp(interp->user_fns[i].name, mname) == 0) {
+                                ufn = &interp->user_fns[i];
+                                break;
+                            }
+                        }
+                        if (ufn) break;
+                        /* Walk up to parent */
+                        if (cur_t->parent_name) {
+                            cur_t = interpreter_lookup_type(interp, cur_t->parent_name);
+                        } else {
+                            cur_t = NULL;
                         }
                     }
                     free(mname);
@@ -441,16 +517,27 @@ static Value interpreter_evaluate(Interpreter* interp, ASTNode* node) {
                 return value_create_none();
             }
 
-            size_t mname_len = strlen(obj.struct_type) + 1 + strlen(method) + 1;
-            char* mname = (char*)malloc(mname_len);
-            snprintf(mname, mname_len, "%s.%s", obj.struct_type, method);
-            for (size_t i = 0; i < interp->user_fn_count; i++) {
-                if (strcmp(interp->user_fns[i].name, mname) == 0) {
-                    ufn = &interp->user_fns[i];
-                    break;
+            /* Walk up inheritance chain to find method */
+            TypeInfo* cur_t = interpreter_lookup_type(interp, obj.struct_type);
+            while (cur_t && !ufn) {
+                size_t mname_len = strlen(cur_t->name) + 1 + strlen(method) + 1;
+                char* mname = (char*)malloc(mname_len);
+                snprintf(mname, mname_len, "%s.%s", cur_t->name, method);
+                for (size_t i = 0; i < interp->user_fn_count; i++) {
+                    if (strcmp(interp->user_fns[i].name, mname) == 0) {
+                        ufn = &interp->user_fns[i];
+                        break;
+                    }
+                }
+                free(mname);
+                if (ufn) break;
+                /* Walk up to parent */
+                if (cur_t->parent_name) {
+                    cur_t = interpreter_lookup_type(interp, cur_t->parent_name);
+                } else {
+                    cur_t = NULL;
                 }
             }
-            free(mname);
 
             if (!ufn) {
                 value_free(&obj);
@@ -1078,6 +1165,22 @@ static Value interpreter_evaluate(Interpreter* interp, ASTNode* node) {
             return value_create_none();
         }
         
+        case AST_IMPL_DECL: {
+            /* Register trait implementation methods under TypeName.methodName */
+            for (size_t i = 0; i < node->data.impl_decl.method_count; i++) {
+                ASTNode* method = node->data.impl_decl.methods[i];
+                if (interp->user_fn_count < MAX_USER_FNS) {
+                    UserFn* ufn = &interp->user_fns[interp->user_fn_count++];
+                    ufn->name = strdup(method->data.fn_decl.name);
+                    ufn->node = method;
+                }
+            }
+            return value_create_none();
+        }
+
+        case AST_TRAIT_DECL:
+            return value_create_none();
+
         default:
             return value_create_none();
     }
@@ -1362,7 +1465,9 @@ static void interpreter_execute_statement(Interpreter* interp, ASTNode* node) {
         }
         
         case AST_TYPE_DECL:
-        case AST_CLASS_DECL: {
+        case AST_CLASS_DECL:
+        case AST_IMPL_DECL:
+        case AST_TRAIT_DECL: {
             Value result = interpreter_evaluate(interp, node);
             value_free(&result);
             break;

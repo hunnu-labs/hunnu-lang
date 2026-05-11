@@ -44,6 +44,8 @@ typedef enum {
     TOKEN_NEW,
     TOKEN_DOT,
     TOKEN_AMPERSAND,
+    TOKEN_TRAIT,
+    TOKEN_IMPL,
     
     TOKEN_LPAREN,
     TOKEN_RPAREN,
