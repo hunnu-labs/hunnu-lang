@@ -38,7 +38,14 @@ static const char* ast_type_names[] = {
     "TYPE_DECL",
     "FIELD_ACCESS",
     "ADDRESS_OF",
-    "DEREFERENCE"
+    "DEREFERENCE",
+    "STRUCT_INSTANCE",
+    "METHOD_CALL",
+    "CLASS_DECL",
+    "NEW_EXPR",
+    "FIELD_ASSIGN",
+    "TRAIT_DECL",
+    "IMPL_DECL"
 };
 
 /**
@@ -47,7 +54,7 @@ static const char* ast_type_names[] = {
  * @return String name
  */
 const char* ast_node_type_to_string(ASTNodeType type) {
-    if (type >= 0 && type <= AST_INDEX_ASSIGN) {
+    if (type >= 0 && type < (int)(sizeof(ast_type_names) / sizeof(ast_type_names[0]))) {
         return ast_type_names[type];
     }
     return "UNKNOWN";
@@ -370,14 +377,15 @@ ASTNode* ast_try_stmt_create(ASTNode* try_block, const char* catch_var,
     return node;
 }
 
-ASTNode* ast_type_decl_create(const char* name, char** fields, size_t field_count,
-                               int32_t line, int32_t column) {
+ASTNode* ast_type_decl_create(const char* name, char** fields, int* is_pub, size_t field_count,
+                                int32_t line, int32_t column) {
     ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
     node->type = AST_TYPE_DECL;
     node->line = line;
     node->column = column;
     node->data.type_decl.name = strdup(name);
     node->data.type_decl.fields = fields;
+    node->data.type_decl.is_pub = is_pub;
     node->data.type_decl.field_count = field_count;
     return node;
 }
@@ -408,6 +416,101 @@ ASTNode* ast_dereference_create(ASTNode* operand, int32_t line, int32_t column) 
     node->line = line;
     node->column = column;
     node->data.dereference.operand = operand;
+    return node;
+}
+
+ASTNode* ast_struct_instance_create(const char* type_name, char** field_names,
+                                     ASTNode** field_values, size_t field_count,
+                                     int32_t line, int32_t column) {
+    ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
+    node->type = AST_STRUCT_INSTANCE;
+    node->line = line;
+    node->column = column;
+    node->data.struct_instance.type_name = strdup(type_name);
+    node->data.struct_instance.field_names = field_names;
+    node->data.struct_instance.field_values = field_values;
+    node->data.struct_instance.field_count = field_count;
+    return node;
+}
+
+ASTNode* ast_method_call_create(ASTNode* object, const char* method,
+                                 ASTNode** args, size_t arg_count,
+                                 int32_t line, int32_t column) {
+    ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
+    node->type = AST_METHOD_CALL;
+    node->line = line;
+    node->column = column;
+    node->data.method_call.object = object;
+    node->data.method_call.method = strdup(method);
+    node->data.method_call.args = args;
+    node->data.method_call.arg_count = arg_count;
+    return node;
+}
+
+ASTNode* ast_class_decl_create(const char* name, const char* parent_name, char** fields, int* is_pub,
+                                 size_t field_count, ASTNode* constructor,
+                                 ASTNode** methods, size_t method_count,
+                                 int32_t line, int32_t column) {
+    ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
+    node->type = AST_CLASS_DECL;
+    node->line = line;
+    node->column = column;
+    node->data.class_decl.name = strdup(name);
+    node->data.class_decl.parent_name = parent_name ? strdup(parent_name) : NULL;
+    node->data.class_decl.fields = fields;
+    node->data.class_decl.is_pub = is_pub;
+    node->data.class_decl.field_count = field_count;
+    node->data.class_decl.constructor = constructor;
+    node->data.class_decl.methods = methods;
+    node->data.class_decl.method_count = method_count;
+    return node;
+}
+
+ASTNode* ast_new_expr_create(const char* class_name, ASTNode** args,
+                              size_t arg_count, int32_t line, int32_t column) {
+    ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
+    node->type = AST_NEW_EXPR;
+    node->line = line;
+    node->column = column;
+    node->data.new_expr.class_name = strdup(class_name);
+    node->data.new_expr.args = args;
+    node->data.new_expr.arg_count = arg_count;
+    return node;
+}
+
+ASTNode* ast_field_assign_create(ASTNode* object, const char* field,
+                                   ASTNode* value, int32_t line, int32_t column) {
+    ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
+    node->type = AST_FIELD_ASSIGN;
+    node->line = line;
+    node->column = column;
+    node->data.field_assign.object = object;
+    node->data.field_assign.field = strdup(field);
+    node->data.field_assign.value = value;
+    return node;
+}
+
+ASTNode* ast_trait_decl_create(const char* name, char** method_names, size_t* method_param_counts, size_t method_count, int32_t line, int32_t column) {
+    ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
+    node->type = AST_TRAIT_DECL;
+    node->line = line;
+    node->column = column;
+    node->data.trait_decl.name = strdup(name);
+    node->data.trait_decl.method_names = method_names;
+    node->data.trait_decl.method_param_counts = method_param_counts;
+    node->data.trait_decl.method_count = method_count;
+    return node;
+}
+
+ASTNode* ast_impl_decl_create(const char* trait_name, const char* type_name, ASTNode** methods, size_t method_count, int32_t line, int32_t column) {
+    ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
+    node->type = AST_IMPL_DECL;
+    node->line = line;
+    node->column = column;
+    node->data.impl_decl.trait_name = strdup(trait_name);
+    node->data.impl_decl.type_name = strdup(type_name);
+    node->data.impl_decl.methods = methods;
+    node->data.impl_decl.method_count = method_count;
     return node;
 }
 

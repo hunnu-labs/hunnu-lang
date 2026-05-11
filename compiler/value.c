@@ -8,9 +8,15 @@ Value value_copy(const Value* val) {
     Value copy;
     copy.type = val->type;
     copy.has_value = val->has_value;
+    copy.array_length = 0;
+    copy.array_elements = NULL;
+    copy.struct_type = NULL;
+    copy.struct_fields = NULL;
+    copy.struct_field_count = 0;
 
     if (val->type == VALUE_STRING) {
         copy.value.string_value = strdup(val->value.string_value);
+        copy.array_elements = val->array_elements;
     } else if (val->type == VALUE_ARRAY) {
         copy.array_length = val->array_length;
         copy.array_elements = (Value**)malloc(sizeof(Value*) * val->array_length);
@@ -18,11 +24,17 @@ Value value_copy(const Value* val) {
             copy.array_elements[i] = (Value*)malloc(sizeof(Value));
             *copy.array_elements[i] = value_copy(val->array_elements[i]);
         }
+    } else if (val->type == VALUE_STRUCT) {
+        copy.struct_type = strdup(val->struct_type);
+        copy.struct_field_count = val->struct_field_count;
+        copy.struct_fields = (Value**)malloc(sizeof(Value*) * val->struct_field_count);
+        for (size_t i = 0; i < val->struct_field_count; i++) {
+            copy.struct_fields[i] = (Value*)malloc(sizeof(Value));
+            *copy.struct_fields[i] = value_copy(val->struct_fields[i]);
+        }
+        copy.array_elements = val->array_elements;
     } else {
         copy.value = val->value;
-        copy.array_length = val->array_length;
-    }
-    if (val->type != VALUE_ARRAY) {
         copy.array_elements = val->array_elements;
     }
     return copy;
@@ -109,6 +121,15 @@ void value_free(Value* value) {
         free(value->array_elements);
         value->array_length = 0;
         value->array_elements = NULL;
+    } else if (value->type == VALUE_STRUCT) {
+        free(value->struct_type);
+        for (size_t i = 0; i < value->struct_field_count; i++) {
+            value_free(value->struct_fields[i]);
+            free(value->struct_fields[i]);
+        }
+        free(value->struct_fields);
+        value->struct_field_count = 0;
+        value->struct_fields = NULL;
     }
     value->type = VALUE_NONE;
 }
@@ -167,6 +188,19 @@ void value_print(Value* value) {
             }
             printf("]");
             break;
+
+        case VALUE_STRUCT:
+            printf("%s { ", value->struct_type);
+            for (size_t i = 0; i < value->struct_field_count; i++) {
+                if (i > 0) printf(", ");
+                printf("?");
+            }
+            printf("}");
+            break;
+
+        case VALUE_POINTER:
+            printf("ptr");
+            break;
     }
 }
 
@@ -190,4 +224,17 @@ int64_t value_as_int(Value* value) {
         return value->value.int_value;
     }
     return 0;
+}
+
+Value value_create_struct_value(const char* type_name, Value** fields, size_t field_count) {
+    Value v;
+    v.type = VALUE_STRUCT;
+    v.value.int_value = 0;
+    v.has_value = 1;
+    v.array_length = 0;
+    v.array_elements = NULL;
+    v.struct_type = strdup(type_name);
+    v.struct_fields = fields;
+    v.struct_field_count = field_count;
+    return v;
 }

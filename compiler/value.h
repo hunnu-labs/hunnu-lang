@@ -43,6 +43,7 @@ Value value_create_bool(int val);
 Value value_create_none(void);
 Value value_create_array(size_t length);
 Value value_create_array_val(Value** arr, size_t length);
+Value value_create_struct_value(const char* type_name, Value** fields, size_t field_count);
 char* value_to_string(Value* value);
 
 #endif

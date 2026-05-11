@@ -7,7 +7,7 @@ This file provides guidance for agentic coding agents working on hunnu-lang.
 hunnu-lang is a lightweight, expression-oriented programming language written in C (interpreter) and Rust (AOT compiler).
 The project uses CMake for building and has a compiler/interpreter architecture.
 
-**Current Phase:** Month 3 - AOT Compiler Foundation (LLVM, Rust frontend, structs)
+**Current Phase:** Month 4 - Object-Oriented Programming (classes, inheritance, traits)
 
 ---
 
@@ -265,7 +265,7 @@ cd build && cmake .. && make
 
 ## Project Structure
 
-### Current (Month 3 - AOT Compiler Foundation)
+### Current (Month 4 - OOP Features)
 
 ```
 hunnu-lang/
@@ -273,7 +273,8 @@ hunnu-lang/
 │   ├── ast/          # Abstract syntax tree definitions
 │   ├── interpreter/  # Runtime execution (C tree-walk)
 │   ├── lexer/       # Tokenization (lexer.c, token.h)
-│   └── parser/       # Syntax analysis
+│   ├── parser/       # Syntax analysis
+│   └── transpile/    # C transpiler backend (AOT via gcc)
 ├── compiler-rust/     # Rust compiler frontend (Month 3)
 │   ├── src/
 │   │   ├── lib.rs     # Main entry point
@@ -310,3 +311,57 @@ hunnu-lang/
 - Test files and scripts
 
 **All code, comments, and documentation must be written in English only.**
+
+---
+
+## Hunnu OOP Language Reference
+
+### Structs with methods
+```hunnu
+type Point = { x, y }
+fn Point.new(x_val, y_val) {
+    return Point(x: x_val, y: y_val)
+}
+fn Point.length(self) {
+    return self.x * self.x + self.y * self.y
+}
+```
+
+### Classes with constructor
+```hunnu
+class Point {
+    pub x: int
+    pub y: int
+    fn new(self, x, y) { self.x = x; self.y = y }
+    fn length(self) { return self.x * self.x + self.y * self.y }
+}
+let p = new Point(3, 4)
+print(p.length())
+```
+
+### Inheritance (`class Child : Parent`)
+```hunnu
+class Dog : Animal {
+    pub breed: str
+    fn new(self, name, breed) { self.name = name; self.breed = breed }
+    fn speak(self) { print("Woof!") }
+}
+```
+
+### Traits and Impls
+```hunnu
+trait Area {
+    fn area(self)
+    fn describe(self)
+}
+impl Area for Circle {
+    fn area(self) { return 3 * self.radius * self.radius }
+    fn describe(self) { print("Circle") }
+}
+```
+
+### AOT Compilation
+Classes must be at top-level for AOT mode:
+```bash
+hunnu compile file.hn -o output
+```

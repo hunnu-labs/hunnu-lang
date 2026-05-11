@@ -30,6 +30,7 @@ set(HUNNU_SOURCES
     compiler/version.c
     compiler/vm/compiler.c
     compiler/vm/vm.c
+    compiler/transpile/transpile.c
 )
 
 # Rust VM integration
@@ -88,6 +89,11 @@ enable_testing()
 
 # C tests
 add_test(NAME hunnu_version COMMAND hunnu -v)
+
+# Integration test suite
+add_test(NAME hunnu_tests
+    COMMAND ${CMAKE_SOURCE_DIR}/run_tests.sh
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 
 # Rust tests
 if(BUILD_RUST_VM AND CARGO_EXECUTABLE)

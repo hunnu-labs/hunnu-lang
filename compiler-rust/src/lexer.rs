@@ -36,6 +36,8 @@ pub enum TokenType {
     Catch,
     Finally,
     Type,
+    Pub,
+    SelfToken,
     
     // Operators
     Plus,
@@ -352,6 +354,8 @@ impl Lexer {
             "catch" => TokenType::Catch,
             "finally" => TokenType::Finally,
             "type" => TokenType::Type,
+            "pub" => TokenType::Pub,
+            "self" => TokenType::SelfToken,
             _ => TokenType::Ident,
         };
         

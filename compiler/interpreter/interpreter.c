@@ -19,6 +19,21 @@ typedef struct {
     int param_count;
 } ExternFn;
 
+typedef struct {
+    char* name;
+    char* parent_name;
+    char** fields;
+    int* is_pub;
+    size_t field_count;
+} TypeInfo;
+
+typedef struct {
+    char* name;
+    ASTNode* node;
+} UserFn;
+
+#define MAX_USER_FNS 256
+
 struct Interpreter {
     Scope* current_scope;
     Value return_value;
@@ -28,6 +43,11 @@ struct Interpreter {
     int32_t current_line;
     ExternFn extern_fns[MAX_EXTERN_FNS];
     size_t extern_fn_count;
+    TypeInfo* types;
+    size_t type_count;
+    size_t type_capacity;
+    UserFn user_fns[MAX_USER_FNS];
+    size_t user_fn_count;
 };
 
 Interpreter* interpreter_new(void) {
@@ -38,7 +58,12 @@ Interpreter* interpreter_new(void) {
     interp->has_continue = 0;
     interp->current_line = 0;
     interp->extern_fn_count = 0;
+    interp->type_count = 0;
+    interp->type_capacity = 0;
+    interp->types = NULL;
+    interp->user_fn_count = 0;
     memset(interp->extern_fns, 0, sizeof(interp->extern_fns));
+    memset(interp->user_fns, 0, sizeof(interp->user_fns));
     return interp;
 }
 
@@ -77,8 +102,106 @@ void interpreter_free(Interpreter* interp) {
             dlclose(interp->extern_fns[i].handle);
         }
     }
+    for (size_t i = 0; i < interp->type_count; i++) {
+        free(interp->types[i].name);
+        if (interp->types[i].parent_name) free(interp->types[i].parent_name);
+        for (size_t j = 0; j < interp->types[i].field_count; j++) {
+            free(interp->types[i].fields[j]);
+        }
+        free(interp->types[i].fields);
+    }
+    free(interp->types);
+    for (size_t i = 0; i < interp->user_fn_count; i++) {
+        free(interp->user_fns[i].name);
+    }
     scope_free(interp->current_scope);
     free(interp);
+}
+
+static void interpreter_register_type(Interpreter* interp, const char* name, const char* parent_name, char** fields, int* is_pub, size_t field_count) {
+    for (size_t i = 0; i < interp->type_count; i++) {
+        if (strcmp(interp->types[i].name, name) == 0) {
+            return;
+        }
+    }
+    if (interp->type_count >= interp->type_capacity) {
+        size_t new_cap = interp->type_capacity == 0 ? 16 : interp->type_capacity * 2;
+        interp->types = (TypeInfo*)realloc(interp->types, sizeof(TypeInfo) * new_cap);
+        interp->type_capacity = new_cap;
+    }
+    TypeInfo* t = &interp->types[interp->type_count++];
+    t->name = strdup(name);
+    t->parent_name = parent_name ? strdup(parent_name) : NULL;
+    t->fields = (char**)malloc(sizeof(char*) * field_count);
+    t->is_pub = (int*)malloc(sizeof(int) * field_count);
+    t->field_count = field_count;
+    for (size_t i = 0; i < field_count; i++) {
+        t->fields[i] = strdup(fields[i]);
+        t->is_pub[i] = is_pub ? is_pub[i] : 1;
+    }
+}
+
+static TypeInfo* interpreter_lookup_type(Interpreter* interp, const char* name) {
+    for (size_t i = 0; i < interp->type_count; i++) {
+        if (strcmp(interp->types[i].name, name) == 0) {
+            return &interp->types[i];
+        }
+    }
+    return NULL;
+}
+
+static void interpreter_execute_statement(Interpreter* interp, ASTNode* node);
+
+static Value interpreter_call_user_fn(Interpreter* interp, UserFn* ufn, Value* args, size_t arg_count) {
+    if (!ufn || !ufn->node || ufn->node->type != AST_FN_DECL) {
+        return value_create_none();
+    }
+
+    ASTNode* fn_node = ufn->node;
+    ASTNode* body = fn_node->data.fn_decl.body;
+
+    /* Check arg count */
+    if (arg_count != fn_node->data.fn_decl.param_count) {
+        fprintf(stderr, "Error at line %d: ", interp->current_line);
+        fprintf(stderr, "Expected %zu arguments but got %zu for function '%s'\n",
+                fn_node->data.fn_decl.param_count, arg_count, ufn->name);
+        return value_create_none();
+    }
+
+    /* Create new scope for function call */
+    Scope* fn_scope = scope_create(16, interp->current_scope);
+    Scope* old_scope = interp->current_scope;
+    interp->current_scope = fn_scope;
+
+    /* Bind parameters */
+    for (size_t i = 0; i < arg_count; i++) {
+        scope_define(fn_scope, fn_node->data.fn_decl.params[i], args[i]);
+    }
+
+    /* Execute body */
+    interp->has_return = 0;
+
+    if (body) {
+        if (body->type == AST_BLOCK) {
+            for (size_t i = 0; i < body->data.block.count; i++) {
+                interpreter_execute_statement(interp, body->data.block.statements[i]);
+                if (interp->has_return) break;
+            }
+        } else {
+            interpreter_execute_statement(interp, body);
+        }
+    }
+
+    Value result = value_create_none();
+    if (interp->has_return) {
+        result = interp->return_value;
+        interp->has_return = 0;
+    }
+
+    interp->current_scope = old_scope;
+    scope_free(fn_scope);
+
+    return result;
 }
 
 static Value interpreter_evaluate(Interpreter* interp, ASTNode* node) {
@@ -103,21 +226,35 @@ static Value interpreter_evaluate(Interpreter* interp, ASTNode* node) {
         }
 
         case AST_TYPE_DECL: {
-            /* Type declarations are handled at parse time or stored for later use */
-            /* For now, just return none - type info is in the AST */
+            interpreter_register_type(interp, node->data.type_decl.name, NULL,
+                                       node->data.type_decl.fields,
+                                       node->data.type_decl.is_pub,
+                                       node->data.type_decl.field_count);
             return value_create_none();
         }
 
         case AST_FIELD_ACCESS: {
-            /* Evaluate the object */
             Value obj = interpreter_evaluate(interp, node->data.field_access.object);
             const char* field = node->data.field_access.field;
 
-            /* Check if it's a struct */
             if (obj.type == VALUE_STRUCT) {
-                /* Find the field by name - simplified for now */
-                /* In a full implementation, we'd look up field names from type decl */
+                TypeInfo* t = interpreter_lookup_type(interp, obj.struct_type);
+                if (t) {
+                    for (size_t i = 0; i < t->field_count; i++) {
+                        if (strcmp(t->fields[i], field) == 0) {
+                            if (!t->is_pub[i]) {
+                                fprintf(stderr, "Warning at line %d: ", interp->current_line);
+                                fprintf(stderr, "Accessing private field '%s' of type '%s'\n", field, t->name);
+                            }
+                            Value result = value_copy(obj.struct_fields[i]);
+                            value_free(&obj);
+                            return result;
+                        }
+                    }
+                }
                 value_free(&obj);
+                fprintf(stderr, "Error at line %d: ", interp->current_line);
+                fprintf(stderr, "Field '%s' not found on type '%s'\n", field, obj.struct_type);
                 return value_create_none();
             }
 
@@ -140,7 +277,6 @@ static Value interpreter_evaluate(Interpreter* interp, ASTNode* node) {
         }
 
         case AST_DEREFERENCE: {
-            /* Dereference a pointer */
             Value ptr = interpreter_evaluate(interp, node->data.dereference.operand);
             if (ptr.type == VALUE_POINTER && ptr.value.pointer_value) {
                 Value result = value_copy((Value*)ptr.value.pointer_value);
@@ -149,6 +285,279 @@ static Value interpreter_evaluate(Interpreter* interp, ASTNode* node) {
             }
             value_free(&ptr);
             return value_create_none();
+        }
+
+        case AST_STRUCT_INSTANCE: {
+            TypeInfo* t = interpreter_lookup_type(interp, node->data.struct_instance.type_name);
+            if (!t) {
+                fprintf(stderr, "Error at line %d: ", interp->current_line);
+                fprintf(stderr, "Unknown type '%s'\n", node->data.struct_instance.type_name);
+                return value_create_none();
+            }
+
+            Value** fields = (Value**)malloc(sizeof(Value*) * t->field_count);
+            for (size_t i = 0; i < t->field_count; i++) {
+                fields[i] = (Value*)malloc(sizeof(Value));
+                *fields[i] = value_create_none();
+            }
+
+            for (size_t i = 0; i < node->data.struct_instance.field_count; i++) {
+                const char* fname = node->data.struct_instance.field_names[i];
+                int found = 0;
+                for (size_t j = 0; j < t->field_count; j++) {
+                    if (strcmp(t->fields[j], fname) == 0) {
+                        if (!t->is_pub[j]) {
+                            fprintf(stderr, "Warning at line %d: ", interp->current_line);
+                            fprintf(stderr, "Setting private field '%s' of type '%s'\n", fname, t->name);
+                        }
+                        value_free(fields[j]);
+                        *fields[j] = interpreter_evaluate(interp, node->data.struct_instance.field_values[i]);
+                        found = 1;
+                        break;
+                    }
+                }
+                if (!found) {
+                    fprintf(stderr, "Error at line %d: ", interp->current_line);
+                    fprintf(stderr, "Unknown field '%s' for type '%s'\n", fname, t->name);
+                }
+            }
+
+            return value_create_struct_value(t->name, fields, t->field_count);
+        }
+
+        case AST_CLASS_DECL: {
+            /* Resolve parent class inheritance */
+            const char* parent_name = node->data.class_decl.parent_name;
+            TypeInfo* parent_type = parent_name ? interpreter_lookup_type(interp, parent_name) : NULL;
+
+            /* Merge fields: parent fields first, then child fields */
+            char** all_fields = NULL;
+            int* all_is_pub = NULL;
+            size_t all_field_count = 0;
+
+            if (parent_type) {
+                all_field_count = parent_type->field_count + node->data.class_decl.field_count;
+                all_fields = (char**)malloc(sizeof(char*) * all_field_count);
+                all_is_pub = (int*)malloc(sizeof(int) * all_field_count);
+                for (size_t i = 0; i < parent_type->field_count; i++) {
+                    all_fields[i] = strdup(parent_type->fields[i]);
+                    all_is_pub[i] = parent_type->is_pub[i];
+                }
+                for (size_t i = 0; i < node->data.class_decl.field_count; i++) {
+                    all_fields[parent_type->field_count + i] = strdup(node->data.class_decl.fields[i]);
+                    all_is_pub[parent_type->field_count + i] = node->data.class_decl.is_pub[i];
+                }
+            } else {
+                all_field_count = node->data.class_decl.field_count;
+                all_fields = (char**)malloc(sizeof(char*) * all_field_count);
+                all_is_pub = (int*)malloc(sizeof(int) * all_field_count);
+                for (size_t i = 0; i < all_field_count; i++) {
+                    all_fields[i] = strdup(node->data.class_decl.fields[i]);
+                    all_is_pub[i] = node->data.class_decl.is_pub[i];
+                }
+            }
+
+            /* Register type with inherited fields */
+            interpreter_register_type(interp, node->data.class_decl.name,
+                                       parent_name,
+                                       all_fields, all_is_pub, all_field_count);
+
+            /* Register child's own constructor and methods FIRST so they take priority */
+            if (node->data.class_decl.constructor) {
+                ASTNode* ctor = node->data.class_decl.constructor;
+                if (interp->user_fn_count < MAX_USER_FNS) {
+                    UserFn* ufn = &interp->user_fns[interp->user_fn_count++];
+                    char* ctor_name = (char*)malloc(strlen(node->data.class_decl.name) + 5);
+                    sprintf(ctor_name, "%s.new", node->data.class_decl.name);
+                    ufn->name = ctor_name;
+                    ufn->node = ctor;
+                }
+            }
+            for (size_t i = 0; i < node->data.class_decl.method_count; i++) {
+                ASTNode* method = node->data.class_decl.methods[i];
+                if (interp->user_fn_count < MAX_USER_FNS) {
+                    UserFn* ufn = &interp->user_fns[interp->user_fn_count++];
+                    ufn->name = strdup(method->data.fn_decl.name);
+                    ufn->node = method;
+                }
+            }
+
+            /* Inherit parent methods that don't conflict with child's overrides */
+            if (parent_type) {
+                for (size_t i = 0; i < interp->user_fn_count; i++) {
+                    char* fn_name = interp->user_fns[i].name;
+                    size_t plen = strlen(parent_name);
+                    if (strncmp(fn_name, parent_name, plen) == 0 && fn_name[plen] == '.') {
+                        /* Create child version: child_name.method */
+                        const char* child_name = node->data.class_decl.name;
+                        const char* method_part = fn_name + plen;
+                        char* inherited_name = (char*)malloc(strlen(child_name) + strlen(method_part) + 1);
+                        sprintf(inherited_name, "%s%s", child_name, method_part);
+                        /* Check if child already has this method (skip if overridden) */
+                        int already_exists = 0;
+                        for (size_t j = 0; j < interp->user_fn_count; j++) {
+                            if (strcmp(interp->user_fns[j].name, inherited_name) == 0) {
+                                already_exists = 1;
+                                break;
+                            }
+                        }
+                        if (!already_exists && interp->user_fn_count < MAX_USER_FNS) {
+                            UserFn* ufn = &interp->user_fns[interp->user_fn_count++];
+                            ufn->name = inherited_name;
+                            ufn->node = interp->user_fns[i].node;
+                        } else {
+                            free(inherited_name);
+                        }
+                    }
+                }
+            }
+
+            return value_create_none();
+        }
+
+        case AST_NEW_EXPR: {
+            const char* cls_name = node->data.new_expr.class_name;
+            TypeInfo* t = interpreter_lookup_type(interp, cls_name);
+            if (!t) {
+                fprintf(stderr, "Error at line %d: ", interp->current_line);
+                fprintf(stderr, "Unknown class '%s'\n", cls_name);
+                return value_create_none();
+            }
+            /* Create struct instance with fields set from constructor args (by position) */
+            Value** fields = (Value**)malloc(sizeof(Value*) * t->field_count);
+            for (size_t i = 0; i < t->field_count; i++) {
+                fields[i] = (Value*)malloc(sizeof(Value));
+                if (i < node->data.new_expr.arg_count) {
+                    *fields[i] = interpreter_evaluate(interp, node->data.new_expr.args[i]);
+                } else {
+                    *fields[i] = value_create_none();
+                }
+            }
+            Value instance = value_create_struct_value(t->name, fields, t->field_count);
+
+            /* Call constructor if exists for any side effects */
+            char* ctor_name = (char*)malloc(strlen(cls_name) + 5);
+            sprintf(ctor_name, "%s.new", cls_name);
+            UserFn* ctor_fn = NULL;
+            for (size_t i = 0; i < interp->user_fn_count; i++) {
+                if (strcmp(interp->user_fns[i].name, ctor_name) == 0) {
+                    ctor_fn = &interp->user_fns[i];
+                    break;
+                }
+            }
+            free(ctor_name);
+
+            if (ctor_fn) {
+                size_t arg_count = node->data.new_expr.arg_count;
+                size_t total_args = 1 + arg_count;
+                Value* call_args = (Value*)malloc(sizeof(Value) * total_args);
+                call_args[0] = value_copy(&instance);
+                for (size_t i = 0; i < arg_count; i++) {
+                    call_args[1 + i] = interpreter_evaluate(interp, node->data.new_expr.args[i]);
+                }
+                Value result = interpreter_call_user_fn(interp, ctor_fn, call_args, total_args);
+                for (size_t i = 0; i < total_args; i++) value_free(&call_args[i]);
+                free(call_args);
+                value_free(&result);
+            }
+
+            return instance;
+        }
+
+        case AST_METHOD_CALL: {
+            const char* method = node->data.method_call.method;
+            UserFn* ufn = NULL;
+            /* Check for static/type method call: TypeName.method() */
+            if (node->data.method_call.object->type == AST_IDENTIFIER) {
+                const char* obj_name = node->data.method_call.object->data.identifier.name;
+                TypeInfo* t = interpreter_lookup_type(interp, obj_name);
+                if (t) {
+                    size_t mname_len = strlen(t->name) + 1 + strlen(method) + 1;
+                    char* mname = (char*)malloc(mname_len);
+                    snprintf(mname, mname_len, "%s.%s", t->name, method);
+                    /* Walk up inheritance chain for static methods */
+                    TypeInfo* cur_t = t;
+                    while (cur_t) {
+                        snprintf(mname, mname_len, "%s.%s", cur_t->name, method);
+                        for (size_t i = 0; i < interp->user_fn_count; i++) {
+                            if (strcmp(interp->user_fns[i].name, mname) == 0) {
+                                ufn = &interp->user_fns[i];
+                                break;
+                            }
+                        }
+                        if (ufn) break;
+                        /* Walk up to parent */
+                        if (cur_t->parent_name) {
+                            cur_t = interpreter_lookup_type(interp, cur_t->parent_name);
+                        } else {
+                            cur_t = NULL;
+                        }
+                    }
+                    free(mname);
+                    if (ufn) {
+                        size_t arg_count = node->data.method_call.arg_count;
+                        Value* args = (Value*)malloc(sizeof(Value) * arg_count);
+                        for (size_t i = 0; i < arg_count; i++) {
+                            args[i] = interpreter_evaluate(interp, node->data.method_call.args[i]);
+                        }
+                        Value result = interpreter_call_user_fn(interp, ufn, args, arg_count);
+                        for (size_t i = 0; i < arg_count; i++) value_free(&args[i]);
+                        free(args);
+                        return result;
+                    }
+                }
+            }
+
+            /* Instance method call: obj.method() */
+            Value obj = interpreter_evaluate(interp, node->data.method_call.object);
+            if (obj.type != VALUE_STRUCT) {
+                value_free(&obj);
+                fprintf(stderr, "Error at line %d: ", interp->current_line);
+                fprintf(stderr, "Method call on non-struct value\n");
+                return value_create_none();
+            }
+
+            /* Walk up inheritance chain to find method */
+            TypeInfo* cur_t = interpreter_lookup_type(interp, obj.struct_type);
+            while (cur_t && !ufn) {
+                size_t mname_len = strlen(cur_t->name) + 1 + strlen(method) + 1;
+                char* mname = (char*)malloc(mname_len);
+                snprintf(mname, mname_len, "%s.%s", cur_t->name, method);
+                for (size_t i = 0; i < interp->user_fn_count; i++) {
+                    if (strcmp(interp->user_fns[i].name, mname) == 0) {
+                        ufn = &interp->user_fns[i];
+                        break;
+                    }
+                }
+                free(mname);
+                if (ufn) break;
+                /* Walk up to parent */
+                if (cur_t->parent_name) {
+                    cur_t = interpreter_lookup_type(interp, cur_t->parent_name);
+                } else {
+                    cur_t = NULL;
+                }
+            }
+
+            if (!ufn) {
+                value_free(&obj);
+                fprintf(stderr, "Error at line %d: ", interp->current_line);
+                fprintf(stderr, "Method '%s' not found on type '%s'\n", method, obj.struct_type);
+                return value_create_none();
+            }
+
+            size_t total_args = 1 + node->data.method_call.arg_count;
+            Value* call_args = (Value*)malloc(sizeof(Value) * total_args);
+            call_args[0] = value_copy(&obj);
+            for (size_t i = 0; i < node->data.method_call.arg_count; i++) {
+                call_args[1 + i] = interpreter_evaluate(interp, node->data.method_call.args[i]);
+            }
+            Value result = interpreter_call_user_fn(interp, ufn, call_args, total_args);
+            for (size_t i = 0; i < total_args; i++) value_free(&call_args[i]);
+            free(call_args);
+            value_free(&obj);
+
+            return result;
         }
         
         case AST_IDENTIFIER: {
@@ -356,6 +765,43 @@ static Value interpreter_evaluate(Interpreter* interp, ASTNode* node) {
             return value_create_none();
         }
         
+        case AST_FIELD_ASSIGN: {
+            Value obj = interpreter_evaluate(interp, node->data.field_assign.object);
+            const char* field = node->data.field_assign.field;
+            Value val = interpreter_evaluate(interp, node->data.field_assign.value);
+
+            if (obj.type == VALUE_STRUCT) {
+                Value* obj_ptr = NULL;
+                if (node->data.field_assign.object->type == AST_IDENTIFIER) {
+                    obj_ptr = scope_lookup(interp->current_scope,
+                                           node->data.field_assign.object->data.identifier.name);
+                }
+                Value* target = obj_ptr ? obj_ptr : &obj;
+                for (size_t i = 0; i < target->struct_field_count; i++) {
+                    TypeInfo* t = interpreter_lookup_type(interp, target->struct_type);
+                    if (t && i < t->field_count && strcmp(t->fields[i], field) == 0) {
+                        value_free(target->struct_fields[i]);
+                        target->struct_fields[i] = (Value*)malloc(sizeof(Value));
+                        *target->struct_fields[i] = value_copy(&val);
+                        value_free(&obj);
+                        value_free(&val);
+                        return val;
+                    }
+                }
+                fprintf(stderr, "Error at line %d: ", interp->current_line);
+                fprintf(stderr, "Field '%s' not found on type '%s'\n", field, target->struct_type);
+                value_free(&obj);
+                value_free(&val);
+                return value_create_none();
+            }
+
+            fprintf(stderr, "Error at line %d: ", interp->current_line);
+            fprintf(stderr, "Field assignment on non-struct\n");
+            value_free(&obj);
+            value_free(&val);
+            return value_create_none();
+        }
+
         case AST_INDEX_ASSIGN: {
             Value index_val = interpreter_evaluate(interp, node->data.index_assign.index);
             Value assign_val = interpreter_evaluate(interp, node->data.index_assign.value);
@@ -631,6 +1077,23 @@ static Value interpreter_evaluate(Interpreter* interp, ASTNode* node) {
                 }
             }
             
+            /* Check for user-defined function */
+            for (size_t i = 0; i < interp->user_fn_count; i++) {
+                if (strcmp(interp->user_fns[i].name, name) == 0) {
+                    size_t arg_count = node->data.call_expr.arg_count;
+                    Value* args = (Value*)malloc(sizeof(Value) * arg_count);
+                    for (size_t j = 0; j < arg_count; j++) {
+                        args[j] = interpreter_evaluate(interp, node->data.call_expr.args[j]);
+                    }
+                    Value result = interpreter_call_user_fn(interp, &interp->user_fns[i], args, arg_count);
+                    for (size_t j = 0; j < arg_count; j++) {
+                        value_free(&args[j]);
+                    }
+                    free(args);
+                    return result;
+                }
+            }
+
             fprintf(stderr, "Error at line %d: ", interp->current_line);
             i18n_error(ERR_UNKNOWN_FUNCTION, name);
             fprintf(stderr, "\n");
@@ -702,12 +1165,26 @@ static Value interpreter_evaluate(Interpreter* interp, ASTNode* node) {
             return value_create_none();
         }
         
+        case AST_IMPL_DECL: {
+            /* Register trait implementation methods under TypeName.methodName */
+            for (size_t i = 0; i < node->data.impl_decl.method_count; i++) {
+                ASTNode* method = node->data.impl_decl.methods[i];
+                if (interp->user_fn_count < MAX_USER_FNS) {
+                    UserFn* ufn = &interp->user_fns[interp->user_fn_count++];
+                    ufn->name = strdup(method->data.fn_decl.name);
+                    ufn->node = method;
+                }
+            }
+            return value_create_none();
+        }
+
+        case AST_TRAIT_DECL:
+            return value_create_none();
+
         default:
             return value_create_none();
     }
 }
-
-static void interpreter_execute_statement(Interpreter* interp, ASTNode* node);
 
 static void interpreter_execute_block_scoped(Interpreter* interp, ASTNode* node) {
     if (!node || node->type != AST_BLOCK) return;
@@ -759,11 +1236,18 @@ static void interpreter_execute_statement(Interpreter* interp, ASTNode* node) {
             interpreter_execute_block_scoped(interp, node);
             break;
         
-        case AST_FN_DECL:
-            if (node->data.fn_decl.body) {
-                interpreter_execute_block_scoped(interp, node->data.fn_decl.body);
+        case AST_FN_DECL: {
+            /* Register as a user-defined function instead of executing body */
+            if (interp->user_fn_count < MAX_USER_FNS) {
+                UserFn* ufn = &interp->user_fns[interp->user_fn_count++];
+                ufn->name = strdup(node->data.fn_decl.name);
+                ufn->node = node;
+            } else {
+                fprintf(stderr, "Error at line %d: ", node->line);
+                fprintf(stderr, "Too many user-defined functions\n");
             }
             break;
+        }
         
         case AST_EXTERN_FN: {
             if (interp->extern_fn_count >= MAX_EXTERN_FNS) {
@@ -980,6 +1464,27 @@ static void interpreter_execute_statement(Interpreter* interp, ASTNode* node) {
             break;
         }
         
+        case AST_TYPE_DECL:
+        case AST_CLASS_DECL:
+        case AST_IMPL_DECL:
+        case AST_TRAIT_DECL: {
+            Value result = interpreter_evaluate(interp, node);
+            value_free(&result);
+            break;
+        }
+
+        case AST_STRUCT_INSTANCE:
+        case AST_METHOD_CALL:
+        case AST_FIELD_ACCESS:
+        case AST_FIELD_ASSIGN:
+        case AST_ADDRESS_OF:
+        case AST_DEREFERENCE:
+        case AST_NEW_EXPR: {
+            Value result = interpreter_evaluate(interp, node);
+            value_free(&result);
+            break;
+        }
+
         default:
             break;
     }
@@ -1000,6 +1505,14 @@ int interpreter_run(Interpreter* interp, ASTNode* program) {
         ASTNode* stmt = program->data.program.statements[i];
         
         interpreter_execute_statement(interp, stmt);
+    }
+    
+    /* Call main() function if it exists */
+    for (size_t i = 0; i < interp->user_fn_count; i++) {
+        if (strcmp(interp->user_fns[i].name, "main") == 0) {
+            interpreter_call_user_fn(interp, &interp->user_fns[i], NULL, 0);
+            break;
+        }
     }
     
     return 0;

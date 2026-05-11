@@ -132,6 +132,7 @@ static void ast_free_node(ASTNode* node) {
             }
             if (node->data.type_decl.field_count > 0) {
                 free(node->data.type_decl.fields);
+                free(node->data.type_decl.is_pub);
             }
             break;
 
@@ -146,6 +147,80 @@ static void ast_free_node(ASTNode* node) {
 
         case AST_DEREFERENCE:
             ast_free_node(node->data.dereference.operand);
+            break;
+
+        case AST_STRUCT_INSTANCE:
+            free(node->data.struct_instance.type_name);
+            for (size_t i = 0; i < node->data.struct_instance.field_count; i++) {
+                free(node->data.struct_instance.field_names[i]);
+                ast_free_node(node->data.struct_instance.field_values[i]);
+            }
+            if (node->data.struct_instance.field_count > 0) {
+                free(node->data.struct_instance.field_names);
+                free(node->data.struct_instance.field_values);
+            }
+            break;
+
+        case AST_METHOD_CALL:
+            ast_free_node(node->data.method_call.object);
+            free(node->data.method_call.method);
+            for (size_t i = 0; i < node->data.method_call.arg_count; i++) {
+                ast_free_node(node->data.method_call.args[i]);
+            }
+            if (node->data.method_call.arg_count > 0) {
+                free(node->data.method_call.args);
+            }
+            break;
+
+        case AST_CLASS_DECL:
+            free(node->data.class_decl.name);
+            free(node->data.class_decl.parent_name);
+            for (size_t i = 0; i < node->data.class_decl.field_count; i++) {
+                free(node->data.class_decl.fields[i]);
+            }
+            if (node->data.class_decl.field_count > 0) {
+                free(node->data.class_decl.fields);
+                free(node->data.class_decl.is_pub);
+            }
+            ast_free_node(node->data.class_decl.constructor);
+            for (size_t i = 0; i < node->data.class_decl.method_count; i++) {
+                ast_free_node(node->data.class_decl.methods[i]);
+            }
+            free(node->data.class_decl.methods);
+            break;
+
+        case AST_NEW_EXPR:
+            free(node->data.new_expr.class_name);
+            for (size_t i = 0; i < node->data.new_expr.arg_count; i++) {
+                ast_free_node(node->data.new_expr.args[i]);
+            }
+            if (node->data.new_expr.arg_count > 0) {
+                free(node->data.new_expr.args);
+            }
+            break;
+
+        case AST_FIELD_ASSIGN:
+            ast_free_node(node->data.field_assign.object);
+            free(node->data.field_assign.field);
+            ast_free_node(node->data.field_assign.value);
+            break;
+
+        case AST_TRAIT_DECL:
+            free(node->data.trait_decl.name);
+            for (size_t i = 0; i < node->data.trait_decl.method_count; i++) {
+                free(node->data.trait_decl.method_names[i]);
+            }
+            free(node->data.trait_decl.method_names);
+            free(node->data.trait_decl.method_param_counts);
+            break;
+
+        case AST_IMPL_DECL:
+            free(node->data.impl_decl.trait_name);
+            free(node->data.impl_decl.type_name);
+            for (size_t i = 0; i < node->data.impl_decl.method_count; i++) {
+                ast_free_node(node->data.impl_decl.methods[i]);
+            }
+            free(node->data.impl_decl.methods);
             break;
 
         case AST_WHILE_STMT:

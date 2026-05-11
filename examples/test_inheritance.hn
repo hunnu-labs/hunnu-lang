@@ -1,0 +1,43 @@
+fn main() {
+    class Animal {
+        pub name: str
+
+        fn new(self, name) {
+            self.name = name
+        }
+
+        fn speak(self) {
+            print("Animal speaks")
+        }
+
+        fn get_name(self) {
+            return self.name
+        }
+    }
+
+    class Dog : Animal {
+        pub breed: str
+
+        fn new(self, name, breed) {
+            self.name = name
+            self.breed = breed
+        }
+
+        fn speak(self) {
+            print("Woof!")
+        }
+
+        fn get_breed(self) {
+            return self.breed
+        }
+    }
+
+    let a = new Animal("Generic")
+    print(a.get_name())
+    a.speak()
+
+    let d = new Dog("Rex", "Husky")
+    print(d.get_name())
+    print(d.get_breed())
+    d.speak()
+}
