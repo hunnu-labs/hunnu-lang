@@ -22,6 +22,8 @@ Value interpreter_evaluate(Interpreter* interp, ASTNode* node) {
                 return value_create_string(node->data.literal.value.string_value);
             } else if (node->data.literal.literal_type == TOKEN_BOOL_LITERAL) {
                 return value_create_bool(node->data.literal.value.bool_value);
+            } else if (node->data.literal.literal_type == TOKEN_SYMBOL) {
+                return value_create_symbol(node->data.literal.value.string_value);
             }
             return value_create_none();
         }
@@ -532,8 +534,9 @@ Value interpreter_evaluate(Interpreter* interp, ASTNode* node) {
             }
 
             if (op == TOKEN_NOT) {
+                int bool_val = value_as_bool(&operand);
                 value_free(&operand);
-                return value_create_bool(!value_as_bool(&operand));
+                return value_create_bool(!bool_val);
             }
 
             value_free(&operand);
@@ -1045,6 +1048,8 @@ Value interpreter_evaluate(Interpreter* interp, ASTNode* node) {
                         pattern_val = value_create_string(pattern->data.literal.value.string_value);
                     } else if (pattern->data.literal.literal_type == TOKEN_BOOL_LITERAL) {
                         pattern_val = value_create_bool(pattern->data.literal.value.bool_value);
+                    } else if (pattern->data.literal.literal_type == TOKEN_SYMBOL) {
+                        pattern_val = value_create_symbol(pattern->data.literal.value.string_value);
                     } else {
                         pattern_val = value_create_none();
                     }
@@ -1062,6 +1067,10 @@ Value interpreter_evaluate(Interpreter* interp, ASTNode* node) {
                             matched = 1;
                         } else if (match_value.type == VALUE_BOOL &&
                                    match_value.value.bool_value == pattern_val.value.bool_value) {
+                            matched = 1;
+                        } else if (match_value.type == VALUE_SYMBOL &&
+                                   strcmp(match_value.value.string_value,
+                                          pattern_val.value.string_value) == 0) {
                             matched = 1;
                         }
                     }

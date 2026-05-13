@@ -89,6 +89,8 @@ typedef enum {
     TOKEN_NEWLINE,
     TOKEN_DEF,
     TOKEN_END,
+    TOKEN_SYMBOL,
+    TOKEN_DOT_DOT,
     TOKEN_UNKNOWN
 } TokenType;
 
