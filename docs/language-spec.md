@@ -674,11 +674,11 @@ HUNNU_LANG=mn ./build/hunnu hello.hn
 
 ### Rust Compiler Support
 
-The Rust frontend (`compiler-rust/`) also recognizes Mongolian keywords via the
+The Rust frontend (`compiler-core/compiler-rust/`) also recognizes Mongolian keywords via the
 same bilingual lexer approach. Build with:
 
 ```bash
-cd compiler-rust && cargo build
+cd compiler-core/compiler-rust && cargo build
 ```
 
 ---

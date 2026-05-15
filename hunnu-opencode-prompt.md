@@ -289,21 +289,24 @@ import std.string
 
 ```
 hunnu-lang/
-├── compiler/           # C interpreter and bytecode VM
-│   ├── lexer/         # Tokenizer (add new keywords here)
-│   ├── parser/        # Parser — AST builder
-│   ├── ast/           # AST node definitions
-│   ├── interpreter/   # Tree-walk interpreter
-│   └── vm/            # Bytecode compiler + VM
-├── compiler-rust/     # Rust AOT compiler (LLVM frontend)
-├── vm-rust/           # Rust bytecode VM
-├── cli/               # CLI entry point (main.c)
-├── stdlib/            # Standard library (.hn modules)
-├── bindings/python/   # Python bindings (PyO3)
-├── examples/          # Example .hn programs
-├── install.sh         # Linux/macOS installer
-├── install.bat        # Windows installer
-└── CMakeLists.txt     # Build system
+├── compiler-core/      # Compiler submodule
+│   ├── compiler/       # C interpreter and bytecode VM
+│   │   ├── lexer/     # Tokenizer (add new keywords here)
+│   │   ├── parser/    # Parser — AST builder
+│   │   ├── ast/       # AST node definitions
+│   │   ├── interpreter/ # Tree-walk interpreter
+│   │   └── vm/        # Bytecode compiler + VM
+│   ├── compiler-rust/ # Rust AOT compiler (LLVM frontend)
+│   ├── vm-rust/       # Rust bytecode VM
+│   ├── cli/           # CLI entry point
+│   └── tests/         # C unit tests
+├── stdlib/             # Standard library (.hn modules)
+├── bindings/python/    # Python bindings (PyO3)
+├── examples/           # Example .hn programs
+├── benchmarks/         # Benchmark suite (submodule)
+├── install.sh          # Linux/macOS installer
+├── install.bat         # Windows installer
+└── CMakeLists.txt      # Build system
 ```
 
 ---
@@ -312,13 +315,13 @@ hunnu-lang/
 
 ### Adding a new keyword
 
-1. Add token to `compiler/lexer/tokens.h` — e.g. `TOKEN_DEF`, `TOKEN_TODORKHIOL`
-2. Add both English + Mongolian string match in `compiler/lexer/lexer.c` keyword table
-3. Add AST node in `compiler/ast/ast.h` if needed
-4. Add parse rule in `compiler/parser/parser.c`
-5. Add interpreter case in `compiler/interpreter/interpreter.c`
-6. Add bytecode emit in `compiler/vm/compiler.c` if VM support needed
-7. Mirror in `compiler-rust/src/lexer.rs` and `compiler-rust/src/parser.rs`
+1. Add token to `compiler-core/compiler/lexer/token.h` — e.g. `TOKEN_DEF`, `TOKEN_TODORKHIOL`
+2. Add both English + Mongolian string match in `compiler-core/compiler/lexer/lexer.c` keyword table
+3. Add AST node in `compiler-core/compiler/ast/ast.h` if needed
+4. Add parse rule in `compiler-core/compiler/parser/parser.c`
+5. Add interpreter case in `compiler-core/compiler/interpreter/interpreter.c`
+6. Add bytecode emit in `compiler-core/compiler/vm/compiler.c` if VM support needed
+7. Mirror in `compiler-core/compiler-rust/src/lexer.rs` and `compiler-core/compiler-rust/src/parser.rs`
 
 ### Keyword lookup pattern (lexer.c)
 

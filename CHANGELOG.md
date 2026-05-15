@@ -18,8 +18,7 @@ All notable changes to the Hunnu language project.
 - Completed `stdlib/string.hn`: `length`, `to_upper`, `to_lower`, `contains`, `trim`, `split`, `join`
 - Completed `stdlib/fs.hn`: `exists`, `read_file`, `write_file`
 - Completed `stdlib/array.hn`: `push`, `pop`
-- Added shared C builtin module (`compiler/interpreter/builtins.c`) for stdlib operations
-- Builtins dispatched in tree-walk interpreter (`interpreter.c`, `eval.c`) and bytecode VM (`vm.c`)
+- Added shared C builtin module (`compiler-core/compiler/interpreter/builtins.c`) for stdlib operations
 
 #### Self-Hosting (#43)
 - Created `self/token.hn` — Token type definitions in Hunnu
@@ -144,13 +143,13 @@ OP_RETURN             // return from function
 ```
 
 #### Bytecode Compiler
-- Added `compiler/compiler.c` - AST to bytecode compilation
+- Added `compiler-core/compiler/vm/compiler.c` - AST to bytecode compilation
 - Walks AST and emits corresponding bytecode
 - Manages constant pool for strings
 - Supports: program, function, block, variable declarations, if/while, arrays, print
 
 #### Virtual Machine
-- Added `compiler/vm.c` - stack-based VM execution
+- Added `compiler-core/compiler/vm/vm.c` - stack-based VM execution
 - Value stack (256 slots max)
 - Local variable storage
 - Builtin function dispatch (print, input, to_int, to_float, to_str)
@@ -166,12 +165,12 @@ OP_RETURN             // return from function
 ```
 
 #### Files
-- `compiler/vm/opcodes.h` - instruction enum
-- `compiler/vm/compiler.h` - compiler types
-- `compiler/vm/compiler.c` - bytecode compiler
-- `compiler/vm/vm.h` - VM header
-- `compiler/vm/vm.c` - VM execution
-- Updated `cli/main.c`, `cli/cli.h` - new commands and flags
+- `compiler-core/compiler/vm/opcodes.h` - instruction enum
+- `compiler-core/compiler/vm/compiler.h` - compiler types
+- `compiler-core/compiler/vm/compiler.c` - bytecode compiler
+- `compiler-core/compiler/vm/vm.h` - VM header
+- `compiler-core/compiler/vm/vm.c` - VM execution
+- Updated `compiler-core/cli/main.c`, `compiler-core/cli/cli.h` - new commands and flags
 
 ---
 
@@ -188,11 +187,11 @@ OP_RETURN             // return from function
 - Pointer support: `&x` (address-of) and `*p` (dereference)
 
 #### Rust Compiler Frontend
-- Created `compiler-rust/` directory with Cargo project
-- Ported lexer to Rust (`compiler-rust/src/lexer.rs`)
-- Ported parser to Rust (`compiler-rust/src/parser.rs`)
-- Rust AST definitions (`compiler-rust/src/ast.rs`)
-- LLVM IR codegen skeleton (`compiler-rust/src/codegen.rs`)
+- Created `compiler-core/compiler-rust/` directory with Cargo project
+- Ported lexer to Rust (`compiler-core/compiler-rust/src/lexer.rs`)
+- Ported parser to Rust (`compiler-core/compiler-rust/src/parser.rs`)
+- Rust AST definitions (`compiler-core/compiler-rust/src/ast.rs`)
+- LLVM IR codegen skeleton (`compiler-core/compiler-rust/src/codegen.rs`)
 
 #### Value Type Extensions
 - Extended `Value` type with `VALUE_STRUCT` and `VALUE_POINTER`
