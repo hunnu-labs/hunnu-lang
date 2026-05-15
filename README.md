@@ -149,26 +149,29 @@ fn main() { print(pow(2.0, 3.0)) }
 
 ```
 hunnu-lang/
-├── compiler/           # C interpreter and bytecode VM
-│   ├── lexer/         # Tokenizer
-│   ├── parser/        # Parser (AST builder)
-│   ├── ast/           # AST node definitions
-│   ├── interpreter/   # Tree-walk interpreter
-│   └── vm/            # Bytecode compiler + VM
-├── compiler-rust/     # Rust AOT compiler frontend (LLVM)
-├── vm-rust/           # Rust bytecode VM
-├── cli/               # CLI + package manager
-├── stdlib/            # Standard library modules
-├── bindings/python/   # Python bindings (PyO3)
-├── docs/              # Documentation
-├── examples/          # Example .hn programs
-├── self/              # Self-hosting compiler (Hunnu in Hunnu)
-└── build/             # Build output (gitignored)
+├── compiler-core/      # Compiler submodule (C interpreter, Rust AOT, Rust VM)
+│   ├── compiler/       # C interpreter + bytecode VM
+│   │   ├── lexer/     # Tokenizer
+│   │   ├── parser/    # Parser (AST builder)
+│   │   ├── ast/       # AST node definitions
+│   │   ├── interpreter/ # Tree-walk interpreter
+│   │   └── vm/        # Bytecode compiler + VM
+│   ├── compiler-rust/ # Rust AOT compiler frontend (LLVM)
+│   ├── vm-rust/       # Rust bytecode VM
+│   ├── cli/           # CLI + package manager
+│   └── tests/         # C unit tests (50 tests)
+├── stdlib/             # Standard library modules
+├── benchmarks/         # Benchmark suite (submodule)
+├── bindings/python/    # Python bindings (PyO3)
+├── docs/               # Documentation
+├── examples/           # Example .hn programs
+├── self/               # Self-hosting compiler (Hunnu in Hunnu)
+└── build/              # Build output (gitignored)
 ```
 
 ## Versioning
 
-Named after authentic Mongolian women (`compiler/version.h`):
+Named after authentic Mongolian women (`compiler-core/compiler/version.h`):
 
 | Version | Name | Meaning |
 |---------|------|---------|

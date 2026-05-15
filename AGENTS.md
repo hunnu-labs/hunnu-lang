@@ -118,12 +118,15 @@ Example:
 
 ```
 hunnu-lang/
-├── compiler/
-│   ├── ast/          # Abstract syntax tree definitions
-│   ├── interpreter/  # Runtime execution
-│   ├── lexer/       # Tokenization (lexer.c, token.h)
-│   └── parser/       # Syntax analysis
-├── cli/              # Command-line interface
+├── compiler-core/     # Compiler submodule
+│   ├── compiler/     # C interpreter + bytecode VM
+│   │   ├── ast/      # Abstract syntax tree definitions
+│   │   ├── interpreter/ # Runtime execution
+│   │   ├── lexer/    # Tokenization (lexer.c, token.h)
+│   │   └── parser/   # Syntax analysis
+│   ├── cli/          # Command-line interface
+│   ├── compiler-rust/ # Rust AOT compiler frontend
+│   └── vm-rust/      # Rust VM implementation
 ├── stdlib/            # Standard library modules
 │   ├── libc.hn       # C library FFI bindings
 │   ├── math.hn       # Math functions
@@ -132,27 +135,26 @@ hunnu-lang/
 │   ├── string.hn     # String utilities
 │   ├── fs.hn         # Filesystem functions
 │   └── time.hn       # Time functions
-├── vm-rust/           # Rust VM implementation
+├── benchmarks/        # Benchmark suite (submodule)
 ├── bindings/          # Language bindings
 │   └── python/       # Python bindings (PyO3)
 ├── examples/          # Sample .hn programs
-├── build/            # Build output (gitignored)
-└── CMakeLists.txt   # Build configuration
+└── build/            # Build output (gitignored)
 ```
 
 ### Key Files
 
-- `compiler/lexer/token.h` - Token type definitions (enum TokenType)
-- `compiler/lexer/lexer.c` - Lexical analyzer implementation
-- `compiler/parser/parser.c` - Parser implementation (dispatch core)
-- `compiler/parser/parse_decl.c` - Declaration parsers
-- `compiler/parser/parse_stmt.c` - Statement parsers
-- `compiler/parser/parse_expr.c` - Expression parsers
-- `compiler/ast/ast.h` - AST node definitions
-- `compiler/interpreter/interpreter.c` - Lifecycle + state helpers
-- `compiler/interpreter/eval.c` - Expression evaluation
-- `compiler/interpreter/exec.c` - Statement execution
-- `compiler/interpreter/call.c` - Function call dispatch
+- `compiler-core/compiler/lexer/token.h` - Token type definitions (enum TokenType)
+- `compiler-core/compiler/lexer/lexer.c` - Lexical analyzer implementation
+- `compiler-core/compiler/parser/parser.c` - Parser implementation (dispatch core)
+- `compiler-core/compiler/parser/parse_decl.c` - Declaration parsers
+- `compiler-core/compiler/parser/parse_stmt.c` - Statement parsers
+- `compiler-core/compiler/parser/parse_expr.c` - Expression parsers
+- `compiler-core/compiler/ast/ast.h` - AST node definitions
+- `compiler-core/compiler/interpreter/interpreter.c` - Lifecycle + state helpers
+- `compiler-core/compiler/interpreter/eval.c` - Expression evaluation
+- `compiler-core/compiler/interpreter/exec.c` - Statement execution
+- `compiler-core/compiler/interpreter/call.c` - Function call dispatch
 
 ### Data Flow
 
@@ -181,14 +183,14 @@ Output
 
 ### Adding New Tokens
 
-1. Add `TOKEN_NEW_TOKEN` to `compiler/lexer/token.h` enum
-2. Add keyword in `compiler/lexer/lexer.c` `keyword_names` array
+1. Add `TOKEN_NEW_TOKEN` to `compiler-core/compiler/lexer/token.h` enum
+2. Add keyword in `compiler-core/compiler/lexer/lexer.c` `keyword_names` array
 3. Add corresponding type in `keyword_types` array
 4. Update `lexer_check_keyword()` if needed
 
 ### Adding New AST Nodes
 
-1. Add `AST_NEW_NODE` to `compiler/ast/ast.h` enum
+1. Add `AST_NEW_NODE` to `compiler-core/compiler/ast/ast.h` enum
 2. Create struct in `ast.h` for the node
 3. Implement creation/destruction functions in `ast.c`
 4. Update parser to build the node
@@ -296,27 +298,29 @@ cd build && cmake .. && make
 
 ```
 hunnu-lang/
-├── compiler/
-│   ├── ast/          # Abstract syntax tree definitions
-│   ├── interpreter/  # Runtime execution (C tree-walk)
-│   │   ├── builtins.c/h  # Shared builtin implementations
-│   │   ├── interpreter.c # Lifecycle + state helpers
-│   │   ├── eval.c        # Expression evaluation
-│   │   ├── exec.c        # Statement execution
-│   │   └── call.c        # Function call dispatch
-│   ├── lexer/       # Tokenization (lexer.c, token.h)
-│   ├── parser/       # Syntax analysis
-│   └── transpile/    # C transpiler backend (AOT via gcc)
-├── compiler-rust/     # Rust compiler frontend (Month 3)
-│   ├── src/
-│   │   ├── lib.rs     # Main entry point
-│   │   ├── lexer.rs   # Rust lexer
-│   │   ├── parser.rs  # Rust parser
-│   │   ├── ast.rs     # Rust AST definitions
-│   │   └── codegen.rs # LLVM IR codegen (skeleton)
-│   └── Cargo.toml
-├── vm-rust/           # Rust VM (Month 1)
-├── cli/              # Command-line interface (incl. package manager)
+├── compiler-core/     # Compiler submodule (https://github.com/hunnu-labs/hunnu-compiler)
+│   ├── compiler/     # C interpreter + bytecode VM
+│   │   ├── ast/      # Abstract syntax tree definitions
+│   │   ├── interpreter/ # Runtime execution (C tree-walk)
+│   │   │   ├── builtins.c/h  # Shared builtin implementations
+│   │   │   ├── interpreter.c # Lifecycle + state helpers
+│   │   │   ├── eval.c        # Expression evaluation (refactor artifact, not compiled)
+│   │   │   ├── exec.c        # Statement execution (refactor artifact, not compiled)
+│   │   │   └── call.c        # Function call dispatch (refactor artifact, not compiled)
+│   │   ├── lexer/    # Tokenization (lexer.c, token.h)
+│   │   ├── parser/   # Syntax analysis
+│   │   │   ├── parser.c      # Main parser
+│   │   │   ├── parse_decl.c  # Declaration parsers (refactor artifact, not compiled)
+│   │   │   ├── parse_stmt.c  # Statement parsers (refactor artifact, not compiled)
+│   │   │   └── parse_expr.c  # Expression parsers (refactor artifact, not compiled)
+│   │   └── transpile/ # C transpiler backend (AOT via gcc)
+│   ├── compiler-rust/ # Rust compiler frontend
+│   │   ├── src/
+│   │   │   ├── lib.rs, lexer.rs, parser.rs, ast.rs, codegen.rs
+│   │   └── Cargo.toml
+│   ├── vm-rust/       # Rust VM
+│   ├── cli/           # Command-line interface (incl. package manager)
+│   └── tests/         # C unit tests (50 tests)
 ├── stdlib/            # Standard library modules (all v1 complete)
 ├── self/              # Self-hosting compiler (Hunnu in Hunnu)
 │   ├── token.hn       # Token definitions

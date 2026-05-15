@@ -54,7 +54,7 @@ make
 # Debian: sudo apt install llvm-dev
 
 # Build Rust compiler with LLVM
-cd compiler-rust && cargo build --features llvm-codegen
+cd compiler-core/compiler-rust && cargo build --features llvm-codegen
 ```
 
 ## Code Style
@@ -70,13 +70,15 @@ See [AGENTS.md](AGENTS.md) for detailed code style guidelines. Key points:
 ## Project Structure
 
 ```
-compiler/         # C interpreter (lexer, parser, AST, VM)
-compiler-rust/    # Rust AOT compiler frontend (LLVM)
-vm-rust/          # Rust bytecode VM
-cli/              # CLI entry point
-stdlib/           # Standard library (.hn modules)
-bindings/python/  # Python bindings (PyO3)
-examples/         # Sample programs
+compiler-core/        # Compiler submodule
+  compiler/           # C interpreter (lexer, parser, AST, VM)
+  compiler-rust/      # Rust AOT compiler frontend (LLVM)
+  vm-rust/            # Rust bytecode VM
+  cli/                # CLI entry point
+  tests/              # C unit tests (50 tests)
+stdlib/               # Standard library (.hn modules)
+bindings/python/      # Python bindings (PyO3)
+examples/             # Sample programs
 ```
 
 ## Testing
@@ -90,8 +92,8 @@ cd build && make
 ./hunnu examples/main.hn
 
 # Rust tests
-cd compiler-rust && cargo test
-cd vm-rust && cargo test
+cd compiler-core/compiler-rust && cargo test
+cd compiler-core/vm-rust && cargo test
 ```
 
 ## Commit Guidelines
