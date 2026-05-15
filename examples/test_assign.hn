@@ -1,4 +1,4 @@
-fn main() {
-    let x = 5
-    let y = x - 1
+def main() {
+    var x 5
+    var y x 1 -
 }

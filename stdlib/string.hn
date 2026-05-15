@@ -1,46 +1,46 @@
 // std/string.hn - String utility functions for Hunnu
 
 // Get string length
-fn length(s) {
-    return len(s)
+def length(s) {
+    len(s) return
 }
 
 // Convert to uppercase
-fn to_upper(s) {
-    return __hn_str_to_upper(s)
+def to_upper(s) {
+    __hn_str_to_upper(s) return
 }
 
 // Convert to lowercase
-fn to_lower(s) {
-    return __hn_str_to_lower(s)
+def to_lower(s) {
+    __hn_str_to_lower(s) return
 }
 
 // Check if string contains substring
-fn contains(s, substring) {
-    return __hn_str_contains(s, substring)
+def contains(s, substring) {
+    __hn_str_contains(s, substring) return
 }
 
 // Trim whitespace from both ends
-fn trim(s) {
-    return __hn_str_trim(s)
+def trim(s) {
+    __hn_str_trim(s) return
 }
 
 // Convert to uppercase (alias)
-fn upcase(s) {
-    return __hn_str_to_upper(s)
+def upcase(s) {
+    __hn_str_to_upper(s) return
 }
 
 // Check if string contains substring (alias)
-fn include(s, substring) {
-    return __hn_str_contains(s, substring)
+def include(s, substring) {
+    __hn_str_contains(s, substring) return
 }
 
 // Split string by delimiter
-fn split(s, delimiter) {
-    return __hn_str_split(s, delimiter)
+def split(s, delimiter) {
+    __hn_str_split(s, delimiter) return
 }
 
 // Join array of strings with delimiter
-fn join(arr, delimiter) {
-    return __hn_str_join(arr, delimiter)
+def join(arr, delimiter) {
+    __hn_str_join(arr, delimiter) return
 }

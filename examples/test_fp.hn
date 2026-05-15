@@ -1,15 +1,14 @@
-fn main() {
-    let mut y = 10
-    y = 20
-    print(y)
+def main() {
+    var mut y 10
+    y 20 =
 
-    let add_one = |x| x + 1
+    var add_one |x| x 1 +
     print(add_one(5))
 
-    fn double(a) { return a * 2 }
-    let f = double
+    def double(a) { a 2 * return }
+    var f double
     print(f(7))
 
-    let add = |a, b| { let r = a + b; return r }
+    var add |a, b| { var r a b +; r return }
     print(add(3, 4))
 }

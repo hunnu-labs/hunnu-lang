@@ -1,70 +1,70 @@
 // std/array.hn - Array utility functions for Hunnu
 
-fn length(arr) {
-    return len(arr)
+def length(arr) {
+    len(arr) return
 }
 
-fn map(arr, f) {
-    let mut result = []
-    let mut i = 0
-    while i < len(arr) {
-        result[len(result)] = f(arr[i])
-        i = i + 1
+def map(arr, f) {
+    var mut result []
+    var mut i 0
+    while i len(arr) < {
+        result[len(result)] f(arr[i]) =
+        i i 1 + =
     }
-    return result
+    result return
 }
 
-fn filter(arr, pred) {
-    let mut result = []
-    let mut i = 0
-    while i < len(arr) {
+def filter(arr, pred) {
+    var mut result []
+    var mut i 0
+    while i len(arr) < {
         if pred(arr[i]) {
-            result[len(result)] = arr[i]
+            result[len(result)] arr[i] =
         }
-        i = i + 1
+        i i 1 + =
     }
-    return result
+    result return
 }
 
-fn reduce(arr, f, init) {
-    let mut result = init
-    let mut i = 0
-    while i < len(arr) {
-        result = f(result, arr[i])
-        i = i + 1
+def reduce(arr, f, init) {
+    var mut result init
+    var mut i 0
+    while i len(arr) < {
+        result f(result, arr[i]) =
+        i i 1 + =
     }
-    return result
+    result return
 }
 
-fn push(arr, val) {
-    return __hn_arr_push(arr, val)
+def push(arr, val) {
+    __hn_arr_push(arr, val) return
 }
 
-fn pop(arr) {
-    return __hn_arr_pop(arr)
+def pop(arr) {
+    __hn_arr_pop(arr) return
 }
 
-fn first(arr) {
-    if len(arr) > 0 {
-        return arr[0]
+def first(arr) {
+    if len(arr) 0 > {
+        arr[0] return
     }
-    return None()
+    None() return
 }
 
-fn last(arr) {
-    let l = len(arr)
-    if l > 0 {
-        return arr[l - 1]
+def last(arr) {
+    var l len(arr)
+    if l 0 > {
+        arr[l 1 -] return
     }
-    return None()
+    None() return
 }
 
-fn enumerate(arr) {
-    let mut result = []
-    let mut i = 0
-    while i < len(arr) {
-        result[len(result)] = [i, arr[i]]
-        i = i + 1
+def enumerate(arr) {
+    var mut result []
+    var mut i 0
+    while i len(arr) < {
+        result[len(result)] [i, arr[i]] =
+        i i 1 + =
     }
-    return result
+    result return
 }

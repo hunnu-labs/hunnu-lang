@@ -1,7 +1,7 @@
 // Test FFI string return with getenv (returns static string)
-extern fn getenv(name) -> str from "libc.so.6"
+extern def getenv(name) -> str from "libc.so.6"
 
-fn main() {
-    let path = getenv("HOME")
+def main() {
+    var path getenv("HOME")
     print(path)
 }

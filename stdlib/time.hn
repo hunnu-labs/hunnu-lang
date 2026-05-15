@@ -2,18 +2,18 @@
 // Uses FFI to C standard library
 
 // Get current time in seconds since epoch
-extern fn time(t) -> int from "libc.so.6"
+extern def time(t) -> int from "libc.so.6"
 
 // Sleep for n seconds
-extern fn sleep(seconds) -> int from "libc.so.6"
+extern def sleep(seconds) -> int from "libc.so.6"
 
 // Get current timestamp
-fn now() {
-    return time(0)
+def now() {
+    time(0) return
 }
 
 // Simple timestamp string
-fn timestamp() {
-    let t = time(0)
-    return to_str(t)
+def timestamp() {
+    var t time(0)
+    to_str(t) return
 }

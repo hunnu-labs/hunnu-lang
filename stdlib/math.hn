@@ -2,15 +2,15 @@
 // Provides common mathematical functions via FFI
 
 // Power function
-extern fn pow(base, exp) -> float from "libm.so.6"
+extern def pow(base, exp) -> float from "libm.so.6"
 
 // Square root
-extern fn sqrt(x) -> float from "libm.so.6"
+extern def sqrt(x) -> float from "libm.so.6"
 
 // Trigonometric functions
-extern fn sin(x) -> float from "libm.so.6"
-extern fn cos(x) -> float from "libm.so.6"
-extern fn tan(x) -> float from "libm.so.6"
+extern def sin(x) -> float from "libm.so.6"
+extern def cos(x) -> float from "libm.so.6"
+extern def tan(x) -> float from "libm.so.6"
 
 // Absolute value
-extern fn fabs(x) -> float from "libm.so.6"
+extern def fabs(x) -> float from "libm.so.6"

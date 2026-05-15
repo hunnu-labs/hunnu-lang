@@ -1,8 +1,8 @@
 // Test try-catch statement
-fn main() {
+def main() {
     try {
         print("Inside try block")
-        let x = 10 / 0  // This would cause an error
+        var x 10 0 /  // This would cause an error
     } catch {
         print("Caught an error!")
     }

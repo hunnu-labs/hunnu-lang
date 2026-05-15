@@ -1,13 +1,13 @@
 trait Area {
-    fn area(self)
-    fn describe(self)
+    def area(self)
+    def describe(self)
 }
 
 class Circle {
     pub radius: int
 
-    fn new(self, r) {
-        self.radius = r
+    def new(self, r) {
+        self.radius r =
     }
 }
 
@@ -15,38 +15,38 @@ class Rect {
     pub w: int
     pub h: int
 
-    fn new(self, w, h) {
-        self.w = w
-        self.h = h
+    def new(self, w, h) {
+        self.w w =
+        self.h h =
     }
 }
 
 impl Area for Circle {
-    fn area(self) {
-        return 3 * self.radius * self.radius
+    def area(self) {
+        return 3 self.radius * self.radius *
     }
 
-    fn describe(self) {
+    def describe(self) {
         print("Circle")
     }
 }
 
 impl Area for Rect {
-    fn area(self) {
-        return self.w * self.h
+    def area(self) {
+        return self.w self.h *
     }
 
-    fn describe(self) {
+    def describe(self) {
         print("Rectangle")
     }
 }
 
-fn main() {
-    let c = new Circle(5)
+def main() {
+    var c new Circle(5)
     c.describe()
     print(c.area())
 
-    let r = new Rect(3, 4)
+    var r new Rect(3, 4)
     r.describe()
     print(r.area())
 }

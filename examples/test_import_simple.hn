@@ -1,8 +1,8 @@
 // Simple import test
 import "stdlib/math.hn"
 
-fn main() {
-    let x = 2.0
-    let result = pow(x, 3.0)
+def main() {
+    var x 2.0
+    var result pow(x, 3.0)
     print(result)
 }

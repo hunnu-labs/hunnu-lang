@@ -1,16 +1,16 @@
-fn main() {
+def main() {
     class Shape {
         pub name: str
 
-        fn new(self, name) {
-            self.name = name
+        def new(self, name) {
+            self.name name =
         }
 
-        fn area(self) {
+        def area(self) {
             return 0
         }
 
-        fn describe(self) {
+        def describe(self) {
             return self.name
         }
     }
@@ -18,13 +18,13 @@ fn main() {
     class Circle : Shape {
         pub radius: int
 
-        fn new(self, name, r) {
-            self.name = name
-            self.radius = r
+        def new(self, name, r) {
+            self.name name =
+            self.radius r =
         }
 
-        fn area(self) {
-            return 3 * self.radius * self.radius
+        def area(self) {
+            return 3 self.radius * self.radius *
         }
     }
 
@@ -32,22 +32,22 @@ fn main() {
         pub w: int
         pub h: int
 
-        fn new(self, name, w, h) {
-            self.name = name
-            self.w = w
-            self.h = h
+        def new(self, name, w, h) {
+            self.name name =
+            self.w w =
+            self.h h =
         }
 
-        fn area(self) {
-            return self.w * self.h
+        def area(self) {
+            return self.w self.h *
         }
     }
 
-    let c = new Circle("Circle A", 5)
+    var c new Circle("Circle A", 5)
     print(c.describe())
     print(c.area())
 
-    let r = new Rectangle("Rect B", 3, 4)
+    var r new Rectangle("Rect B", 3, 4)
     print(r.describe())
     print(r.area())
 }

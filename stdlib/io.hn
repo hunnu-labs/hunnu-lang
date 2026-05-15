@@ -5,18 +5,18 @@
 import "libc.hn"
 
 // Print with newline (already built-in, but added for completeness)
-fn println(s) {
+def println(s) {
     print(s)
     print("\n")
 }
 
 // Read a line from stdin
-fn read_line() {
-    return input()
+def read_line() {
+    input() return
 }
 
 // Print formatted string (simple version)
-fn printfmt(fmt, args) {
+def printfmt(fmt, args) {
     // Simple implementation - in production this would parse format strings
     print(fmt)
 }

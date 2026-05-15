@@ -5,6 +5,12 @@ A lightweight, expression-oriented programming language written in C (interprete
 ## Quick Start
 
 ```bash
+# Clone with submodules
+git clone --recursive https://github.com/hunnu-labs/hunnu-lang.git
+cd hunnu-lang
+
+# Or if already cloned: git submodule update --init --recursive
+
 # Build from source
 mkdir -p build && cd build && cmake .. && make
 

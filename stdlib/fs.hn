@@ -1,17 +1,17 @@
 // std/fs.hn - Filesystem functions for Hunnu
 
 // Check if file exists
-fn exists(path) {
-    let content = __hn_fs_read_file(path)
-    return content != ""
+def exists(path) {
+    var content __hn_fs_read_file(path)
+    content "" != return
 }
 
 // Read entire file content
-fn read_file(path) {
-    return __hn_fs_read_file(path)
+def read_file(path) {
+    __hn_fs_read_file(path) return
 }
 
 // Write content to file
-fn write_file(path, content) {
-    return __hn_fs_write_file(path, content)
+def write_file(path, content) {
+    __hn_fs_write_file(path, content) return
 }

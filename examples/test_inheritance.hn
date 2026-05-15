@@ -1,16 +1,16 @@
-fn main() {
+def main() {
     class Animal {
         pub name: str
 
-        fn new(self, name) {
-            self.name = name
+        def new(self, name) {
+            self.name name =
         }
 
-        fn speak(self) {
+        def speak(self) {
             print("Animal speaks")
         }
 
-        fn get_name(self) {
+        def get_name(self) {
             return self.name
         }
     }
@@ -18,25 +18,25 @@ fn main() {
     class Dog : Animal {
         pub breed: str
 
-        fn new(self, name, breed) {
-            self.name = name
-            self.breed = breed
+        def new(self, name, breed) {
+            self.name name =
+            self.breed breed =
         }
 
-        fn speak(self) {
+        def speak(self) {
             print("Woof!")
         }
 
-        fn get_breed(self) {
+        def get_breed(self) {
             return self.breed
         }
     }
 
-    let a = new Animal("Generic")
+    var a new Animal("Generic")
     print(a.get_name())
     a.speak()
 
-    let d = new Dog("Rex", "Husky")
+    var d new Dog("Rex", "Husky")
     print(d.get_name())
     print(d.get_breed())
     d.speak()
