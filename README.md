@@ -154,24 +154,24 @@ fn main() { print(pow(2.0, 3.0)) }
 
 ```
 hunnu-lang/
-├── compiler-core/      # Compiler submodule (C interpreter, Rust AOT, Rust VM)
-│   ├── compiler/       # C interpreter + bytecode VM
-│   │   ├── lexer/     # Tokenizer
-│   │   ├── parser/    # Parser (AST builder)
-│   │   ├── ast/       # AST node definitions
-│   │   ├── interpreter/ # Tree-walk interpreter
-│   │   └── vm/        # Bytecode compiler + VM
-│   ├── compiler-rust/ # Rust AOT compiler frontend (LLVM)
-│   ├── vm-rust/       # Rust bytecode VM
-│   ├── cli/           # CLI + package manager
-│   └── tests/         # C unit tests (50 tests)
-├── stdlib/             # Standard library modules
-├── benchmarks/         # Benchmark suite (submodule)
-├── bindings/python/    # Python bindings (PyO3)
-├── docs/               # Documentation
-├── examples/           # Example .hn programs
-├── self/               # Self-hosting compiler (Hunnu in Hunnu)
-└── build/              # Build output (gitignored)
+├── compiler-core/          # Compiler submodule (C interpreter, Rust AOT, Rust VM)
+│   ├── compiler/           # C interpreter + bytecode VM
+│   │   ├── lexer/         # Tokenizer
+│   │   ├── parser/        # Parser (AST builder)
+│   │   ├── ast/           # AST node definitions
+│   │   ├── interpreter/   # Tree-walk interpreter
+│   │   └── vm/            # Bytecode compiler + VM
+│   ├── compiler-rust/     # Rust AOT compiler frontend (LLVM)
+│   ├── vm-rust/           # Rust bytecode VM
+│   ├── cli/               # CLI + package manager
+│   └── tests/             # C unit tests (50 tests)
+├── stdlib/                 # Standard library modules
+├── benchmarks/             # Benchmark suite (submodule)
+├── bindings/python/        # Python bindings (PyO3)
+├── examples/               # Example .hn programs
+├── self/                   # Self-hosting compiler (Hunnu in Hunnu)
+├── vm_stub.c               # Rust VM stub for builds without cargo
+└── build/                  # Build output (gitignored)
 ```
 
 ## Versioning
@@ -203,11 +203,20 @@ Named after authentic Mongolian women (`compiler-core/compiler/version.h`):
 - CI/CD pipeline, benchmark suite
 
 ### Next Steps
-- Complete LLVM codegen in compiler-rust
+- Complete LLVM codegen in compiler-rust ([#89](https://github.com/hunnu-labs/hunnu-lang/issues/89))
 - Functional features (immutability by default, closures, pipes)
-- Type system enhancements
+- Type system enhancements (generics, type inference)
 - Language server protocol (LSP)
-- Expanded standard library
+- Expanded standard library (regex, http, json)
+
+## Community
+
+| Resource | Link |
+|----------|------|
+| Project Board | https://github.com/orgs/hunnu-labs/projects/1 |
+| Wiki | https://github.com/hunnu-labs/hunnu-lang/wiki |
+| Discussions | https://github.com/orgs/hunnu-labs/discussions |
+| Landing Page | https://github.com/hunnu-labs/hunnu-labs-landing |
 
 ## License
 
