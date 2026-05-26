@@ -1,4 +1,4 @@
-def main() {
-    var mut x 5
-    x x 1 - =
+fn main() {
+    let mut x = 5
+    x = x - 1
 }

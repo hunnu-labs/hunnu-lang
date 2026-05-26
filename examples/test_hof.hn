@@ -1,14 +1,14 @@
 import "stdlib/array.hn" as arr
 
-def main() {
-    var nums [1, 2, 3, 4, 5]
+fn main() {
+    let nums = [1, 2, 3, 4, 5]
 
-    var doubled map(nums, |x| x 2 *)
+    let doubled = map(nums, |x| x * 2)
     print(doubled)
 
-    var evens filter(nums, |x| x 2 % 0 ==)
+    let evens = filter(nums, |x| x % 2 == 0)
     print(evens)
 
-    var sum reduce(nums, |a, b| a b +, 0)
+    let sum = reduce(nums, |a, b| a + b, 0)
     print(sum)
 }

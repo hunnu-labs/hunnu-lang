@@ -1,4 +1,4 @@
-def main() {
-    var x 42
+fn main() {
+    let x = 42
     print(x)
 }

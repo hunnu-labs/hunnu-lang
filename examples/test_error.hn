@@ -1,9 +1,9 @@
 // Test error handling
-def main() {
-    var err error("Something went wrong!")
+fn main() {
+    let err = error("Something went wrong!")
     print(is_error(err))
     
-    var val 42
+    let val = 42
     print(is_error(val))
     
     // Unwrap will print error and return none

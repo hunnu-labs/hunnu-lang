@@ -2,20 +2,20 @@ class Point {
     pub x: int
     pub y: int
 
-    def new(self, x, y) {
-        self.x x =
-        self.y y =
+    fn new(self, x, y) {
+        self.x = x
+        self.y = y
     }
 
-    def length(self) {
-        return self.x self.x * self.y self.y * +
+    fn length(self) {
+        return self.x * self.x + self.y * self.y
     }
 }
 
-def main() {
-    var p new Point(3, 4)
+fn main() {
+    let p = new Point(3, 4)
     print(p.x)
     print(p.y)
-    var len p.length()
+    let len = p.length()
     print(len)
 }

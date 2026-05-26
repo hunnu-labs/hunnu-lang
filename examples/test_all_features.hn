@@ -1,18 +1,18 @@
 // Feature 1: Unsafe blocks (#29)
-def test_unsafe() {
-    var x 42
+fn test_unsafe() {
+    let x = 42
     unsafe {
-        var y x 8 +
+        let y = x + 8
         print(y)
     }
 }
 
 // Feature 2: Module visibility with pub (#30)
-pub def public_helper() {
+pub fn public_helper() {
     print("public")
 }
 
-def private_helper() {
+fn private_helper() {
     print("private")
 }
 
@@ -28,11 +28,11 @@ enum Color {
     Blue(r, g, b)
 }
 
-def test_enums() {
-    var c Color::Red
+fn test_enums() {
+    let c = Color::Red
     print(c)
 
-    var rgb Color::Blue(255, 128, 0)
+    let rgb = Color::Blue(255, 128, 0)
     print(rgb)
 
     match rgb {
@@ -48,11 +48,11 @@ def test_enums() {
 }
 
 // Feature 4: Generics (#28)
-def identity<T>(x) {
+fn identity<T>(x) {
     return x
 }
 
-def main() {
+fn main() {
     print("--- unsafe ---")
     test_unsafe()
 
@@ -64,8 +64,8 @@ def main() {
     test_enums()
 
     print("--- generics ---")
-    var v identity(42)
+    let v = identity(42)
     print(v)
-    var s identity("hello")
+    let s = identity("hello")
     print(s)
 }

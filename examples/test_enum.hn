@@ -4,11 +4,11 @@ enum Color {
     Blue(u8, u8, u8)
 }
 
-def main() {
-    var c Color::Red
+fn main() {
+    let c = Color::Red
     print(c)
 
-    var rgb Color::Blue(128, 200, 255)
+    let rgb = Color::Blue(128, 200, 255)
     print(rgb)
 
     match rgb {

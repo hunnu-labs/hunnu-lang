@@ -1,1 +1,1 @@
-def main() { for var mut i 0; i 3 <; i i 1 + = { print(i) } }
+fn main() { for let mut i = 0; i < 3; i = i + 1 { print(i) } }

@@ -1,17 +1,17 @@
 type Point = { x, y }
 
-def Point.new(x_val, y_val) {
+fn Point.new(x_val, y_val) {
     return Point(x: x_val, y: y_val)
 }
 
-def Point.length(self) {
-    return self.x self.x * self.y self.y * +
+fn Point.length(self) {
+    return self.x * self.x + self.y * self.y
 }
 
-def main() {
-    var p Point.new(3, 4)
+fn main() {
+    let p = Point.new(3, 4)
     print(p.x)
     print(p.y)
-    var len p.length()
+    let len = p.length()
     print(len)
 }

@@ -1,5 +1,5 @@
 // Simple error test
-def main() {
+fn main() {
     error("test error")
     print("After error")
 }
