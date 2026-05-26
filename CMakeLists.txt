@@ -59,8 +59,9 @@ if(BUILD_RUST_VM)
 
         # Build the C components with Rust VM support
         add_executable(hunnu ${HUNNU_SOURCES})
+        target_compile_definitions(hunnu PRIVATE HUNNU_HAVE_RUST_VM=1)
 
-        # Link with Rust VM library
+        # Link with Rust VM library (provides hunnu_vm_run)
         target_link_libraries(hunnu ${RUST_VM_LIB})
         target_link_libraries(hunnu pthread dl)
 
@@ -76,10 +77,10 @@ if(BUILD_RUST_VM)
         message(STATUS "Rust VM will be linked with hunnu binary")
     else()
         message(WARNING "cargo not found - building without Rust VM support")
-        add_executable(hunnu ${HUNNU_SOURCES})
+        add_executable(hunnu ${HUNNU_SOURCES} ${CMAKE_SOURCE_DIR}/vm_stub.c)
     endif()
 else()
-    add_executable(hunnu ${HUNNU_SOURCES})
+    add_executable(hunnu ${HUNNU_SOURCES} ${CMAKE_SOURCE_DIR}/vm_stub.c)
 endif()
 
 target_compile_options(hunnu PRIVATE -Wall -Wextra -pedantic)

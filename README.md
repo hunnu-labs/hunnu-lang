@@ -5,6 +5,12 @@ A lightweight, expression-oriented programming language written in C (interprete
 ## Quick Start
 
 ```bash
+# Clone with submodules
+git clone --recursive https://github.com/hunnu-labs/hunnu-lang.git
+cd hunnu-lang
+
+# Or if already cloned: git submodule update --init --recursive
+
 # Build from source
 mkdir -p build && cd build && cmake .. && make
 
@@ -24,27 +30,26 @@ export PATH="$PATH:/usr/local/bin"
 
 ## Features
 
-| Feature | Syntax |
-|---------|--------|
+| Category | Syntax |
+|----------|--------|
 | Variables | `let x = 10`, `let mut x = 10` |
 | Functions | `fn add(a, b) { return a + b }` |
-| If/Else/else if | `if x > 0 { ... } else { ... }` |
-| While/For loops | `while x > 0 { ... }`, `for let i = 0; i < 3; i++ { ... }` |
+| Control flow | `if/else`, `while`, `for`, `match`, `try/catch` |
 | Arrays | `let arr = [1, 2, 3]`, `arr[0]` |
 | Structs | `type Point = { x: int, y: int }`, `p.x` |
 | Pointers | `&x`, `*p` |
 | Classes | `class Point { pub x, pub y, fn new(self, x, y) { ... } }` |
 | Inheritance | `class Dog : Animal { ... }` |
 | Traits | `trait Area { fn area(self) }` + `impl Area for Circle { ... }` |
-| Encapsulation | `pub` (public) vs private fields |
-| Match | `match val { 0 -> "zero", _ -> "other" }` |
-| Try/Catch | `try { ... } catch { ... }` |
+| Enums/ADTs | `enum Color { Red, Green, Blue(r, g, b) }` |
+| Generics | `fn identity<T>(x) { return x }` |
+| Unsafe blocks | `unsafe { ... }` |
+| Encapsulation | `pub` (public) vs private fields/methods |
 | FFI | `extern fn puts(s) from "libc.so.6"` |
 | AOT compilation | `hunnu compile file.hn -o output` |
 | i18n | `--lang mn` / `HUNNU_LANG=mn` |
 
-
-**Built-in functions:** `print(x)` `input()` `len(arr)` `to_int(x)` `to_float(x)` `to_str(x)`
+**Built-in functions:** `print(x)`, `input()`, `len(arr)`, `to_int(x)`, `to_float(x)`, `to_str(x)`, `is_error(x)`, `error(msg)`
 
 ## Usage
 
@@ -181,11 +186,13 @@ Named after authentic Mongolian women (`compiler-core/compiler/version.h`):
 
 ## Roadmap
 
-### Completed
+### Completed (v1.0.0 Эрдэнэ)
 - Core language (variables, functions, control flow, arrays, structs, pointers)
 - OOP (classes, inheritance, traits/impl, encapsulation, `self`)
 - Pattern matching (match with literals, wildcards, identifiers)
 - Error handling (try/catch)
+- Enums/ADTs and generics
+- Unsafe blocks
 - Standard library (math, I/O, array, string, fs, time)
 - FFI ecosystem (extern functions, C library bindings)
 - Bytecode compiler + VM (C and Rust)
@@ -197,9 +204,10 @@ Named after authentic Mongolian women (`compiler-core/compiler/version.h`):
 
 ### Next Steps
 - Complete LLVM codegen in compiler-rust
-- Enums / ADTs, generics, unsafe blocks
-- Functional features (immutability, first-class functions, closures, lambdas)
-- v1.0.0 Эрдэнэ release
+- Functional features (immutability by default, closures, pipes)
+- Type system enhancements
+- Language server protocol (LSP)
+- Expanded standard library
 
 ## License
 
