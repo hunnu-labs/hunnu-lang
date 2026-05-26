@@ -53,7 +53,7 @@ jobs:
           tar czf ../hunnu-${{ runner.os }}.tar.gz *
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: hunnu-${{ runner.os }}
           path: hunnu-${{ runner.os }}.tar.gz
