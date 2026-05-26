@@ -26,7 +26,7 @@ check_format() {
     fi
     
     local issues=0
-    for f in $(find compiler cli -name "*.c" -o -name "*.h" 2>/dev/null); do
+    for f in $(find compiler-core/compiler compiler-core/cli -name "*.c" -o -name "*.h" 2>/dev/null); do
         if ! clang-format --style=file --dry-run "$f" 2>/dev/null | diff -q "$f" - &>/dev/null; then
             echo "Format issue: $f"
             issues=$((issues + 1))
@@ -47,7 +47,7 @@ fix_format() {
         return 1
     fi
     
-    for f in $(find compiler cli -name "*.c" -o -name "*.h" 2>/dev/null); do
+    for f in $(find compiler-core/compiler compiler-core/cli -name "*.c" -o -name "*.h" 2>/dev/null); do
         clang-format -i "$f"
         echo "Formatted: $f"
     done
@@ -60,10 +60,10 @@ check_c() {
         return 1
     fi
     
-    cppcheck --enable=all --std=c11 -I compiler \
+    cppcheck --enable=all --std=c11 -I compiler-core/compiler \
         --suppress=missingIncludeSystem \
         --error-exitcode=1 \
-        compiler/ cli/ 2>&1 || true
+        compiler-core/compiler/ compiler-core/cli/ 2>&1 || true
     echo "✓ C code check complete"
 }
 

@@ -18,7 +18,15 @@ jobs:
           submodules: recursive
 
       - name: Install dependencies
-        run: sudo apt-get update && sudo apt-get install -y cmake gcc
+        run: sudo apt-get update && sudo apt-get install -y cmake gcc clang-format
+
+      - name: Check formatting
+        run: |
+          find compiler-core/compiler compiler-core/cli -name "*.c" -o -name "*.h" | while read f; do
+            if ! clang-format --style=file --dry-run "$f" 2>/dev/null | diff -q "$f" - &>/dev/null; then
+              echo "Format issue: $f"; exit 1
+            fi
+          done
 
       - name: Configure and build
         run: |
