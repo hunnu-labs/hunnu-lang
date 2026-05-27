@@ -22,3 +22,6 @@ Thumbs.db
 
 # Git hooks (disable - use install-hooks.sh instead)
 .git/hooks/*
+
+# Agent session files
+.remember/
