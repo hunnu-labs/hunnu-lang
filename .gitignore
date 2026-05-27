@@ -17,9 +17,6 @@ Thumbs.db
 .idea/
 *.code-workspace
 
-# Agent session files
-.remember/
-
 # Git hooks (disable - use install-hooks.sh instead)
 .git/hooks/*
 
