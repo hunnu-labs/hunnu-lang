@@ -4,6 +4,31 @@ All notable changes to the Hunnu language project.
 
 ---
 
+## [Unreleased]
+
+### AOT Compiler: Complete LLVM Codegen (#89)
+- Full LLVM IR code generation in `compiler-rust` (`compiler-core/compiler-rust/src/codegen.rs`)
+- Register-based codegen with function compilation and module output
+- Rust compiler frontend pipeline: lexer → parser → AST → LLVM IR
+
+### Benchmark Suite Refactoring (#91)
+- `benchmark.py` v1.3.0: warm-up run (discarded) for stable timing
+- `--parallel` flag for concurrent benchmark execution
+- `--compare FILE` flag for baseline JSON diff (% change with ▲/▼)
+- JSON results saved to `./results/` directory
+- `benchmarks/sort.hn`: rewritten as proper bubble sort (was just array sum)
+- `benchmarks/array.hn`: 100k timing loop for measurable runtime
+- `requirements-dev.txt`: created (referenced but missing)
+- `.gitmodules`: removed recursive self-referencing submodule
+- Updated `run_benchmarks.sh` to forward `--parallel` and `--compare`
+
+### CI & Documentation
+- Added project board automation workflow (`.github/workflows/project-board.yml`)
+- Updated `CONTRIBUTING.md` with detailed guidelines and project structure
+- Added `CODEOWNERS` with `@kyuna0312` as code owner
+
+---
+
 ## [1.0.0] - 2026-05-12
 
 ### Month 6: Self-Hosting, Package Manager, v1.0 Release ✅
