@@ -5,10 +5,6 @@ on:
   pull_request_target:
     types: [opened, closed, merged]
 
-permissions:
-  contents: read
-  packages: read
-
 jobs:
   manage-project:
     runs-on: ubuntu-latest
