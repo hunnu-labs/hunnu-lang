@@ -1,408 +1,172 @@
 # AGENTS.md - Hunnu Language Development Guidelines
 
-This file provides guidance for agentic coding agents working on hunnu-lang.
+Guidance for agentic coding agents working on hunnu-lang.
 
 ## Project Overview
 
-hunnu-lang is a lightweight, expression-oriented programming language written in C (interpreter) and Rust (AOT compiler).
-The project uses CMake for building and has a compiler/interpreter architecture.
+Lightweight, expression-oriented programming language in C (interpreter + bytecode VM) and Rust (AOT compiler via LLVM). CMake build system.
 
-**Current Phase:** v1.0.0 (Эрдэнэ) — Month 6 Complete (Self-Hosting, Package Manager, Release)
+**Current:** Post-v1.0.0 — LLVM codegen complete, benchmark suite refactored, CI/CD automated.
 
 ---
 
-## Build Commands
-
-CMake is used as the build system.
-
-### Main Commands
+## Quick Start
 
 ```bash
-# Create build directory (first time only)
-mkdir -p build && cd build
-
-# Configure with CMake
-cmake ..
-
-# Build the project
-make
-
-# Or build from root:
-cd build && make
-```
-
-### Running
-
-```bash
-# Run a Hunnu program
-./build/hunnu run examples/main.hn
-
-# Or shorter:
-./build/hunnu examples/main.hn
+mkdir -p build && cd build && cmake .. && make              # build
+./build/hunnu run examples/main.hn                           # run
+./build/hunnu examples/main.hn                               # shorter
+./build/hunnu build examples/main.hn                         # emit bytecode
+./build/hunnu run examples/main.hn --vm                      # run via VM
+cd build && make && ctest                                     # test
 ```
 
 ---
 
-## Code Style Guidelines
-
-### General Principles
-
-- Write clean, readable, idiomatic C code
-- Keep functions small and focused (single responsibility)
-- Use meaningful variable and function names
-- Avoid magic numbers - use constants
-- Comment "why", not "what"
-
-### Formatting
-
-- Use 4 spaces for indentation (no tabs)
-- Max line length: 100 characters
-- Opening brace on same line as function/if/while
-- Use `const` whenever possible
-- Prefer `static` for internal functions
-
-Example:
-```c
-static int calculate_value(int a, int b) {
-    return a + b;
-}
-```
-
-### Includes
-
-- Group includes in this order:
-  1. Project header (local .h)
-  2. Standard C library (<stdio.h>, <stdlib.h>, etc.)
-  3. System headers
-
-Example:
-```c
-#include "lexer.h"
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
-```
-
-### Naming Conventions
-
-| Type | Convention | Example |
-|------|-----------|---------|
-| Variables | snake_case | `current_token` |
-| Constants | UPPER_SNAKE_CASE | `MAX_TOKEN_LENGTH` |
-| Functions | snake_case | `parse_expression` |
-| Types/Structs | snake_case (PascalCase for display) | `Lexer` |
-| Enums (values) | UPPER_SNAKE_CASE | `TOKEN_LET` |
-| Files | snake_case | `lexer.c` / `lexer.h` |
-| Macros | UPPER_SNAKE_CASE | `#define MAX_DEPTH 100` |
-
-### Types
-
-- Use fixed-width integers from `<stdint.h>`: `int32_t`, `int64_t`, `uint32_t`
-- Use `size_t` for sizes and indices
-- Use `int` for boolean return types (0 = false, non-zero = true)
-- Always initialize pointers to `NULL`
-- Check for `NULL` before dereferencing
-
-### Error Handling
-
-- Return error codes (0 for success, negative for errors)
-- Use `fprintf(stderr, ...)` for error messages
-- Never silently ignore return values
-- Clean up resources on error (free memory, close files)
-
----
-
-## Project Architecture
+## Architecture
 
 ### Directory Structure
 
 ```
 hunnu-lang/
-├── compiler-core/     # Compiler submodule
-│   ├── compiler/     # C interpreter + bytecode VM
-│   │   ├── ast/      # Abstract syntax tree definitions
-│   │   ├── interpreter/ # Runtime execution
-│   │   ├── lexer/    # Tokenization (lexer.c, token.h)
-│   │   └── parser/   # Syntax analysis
-│   ├── cli/          # Command-line interface
-│   ├── compiler-rust/ # Rust AOT compiler frontend
-│   └── vm-rust/      # Rust VM implementation
-├── stdlib/            # Standard library modules
-│   ├── libc.hn       # C library FFI bindings
-│   ├── math.hn       # Math functions
-│   ├── io.hn         # I/O functions
-│   ├── array.hn      # Array utilities
-│   ├── string.hn     # String utilities
-│   ├── fs.hn         # Filesystem functions
-│   └── time.hn       # Time functions
-├── benchmarks/        # Benchmark suite (submodule)
-├── bindings/          # Language bindings
-│   └── python/       # Python bindings (PyO3)
-├── examples/          # Sample .hn programs
-└── build/            # Build output (gitignored)
+├── compiler-core/          # Compiler submodule
+│   ├── compiler/           # C interpreter + bytecode VM
+│   │   ├── ast/            # AST definitions (ast.h, ast.c, ast_free.c, ast_print.c)
+│   │   ├── interpreter/    # Runtime: interpreter.c, builtins.c/h
+│   │   ├── lexer/          # Tokenization (lexer.c, token.h/c)
+│   │   ├── parser/         # Parser (parser.c)
+│   │   └── vm/             # Bytecode VM (compiler.c, vm.c, opcodes.h)
+│   ├── compiler-rust/      # Rust AOT frontend (src/{lexer,parser,ast,codegen}.rs)
+│   ├── vm-rust/            # Rust VM
+│   ├── cli/                # CLI + package manager
+│   ├── transpile/          # C transpiler backend (AOT via gcc)
+│   └── tests/              # C unit tests (50 tests, minunit)
+├── stdlib/                  # Standard library (.hn modules)
+├── self/                    # Self-hosting compiler (token.hn, lexer.hn)
+├── benchmarks/              # hunnu-benchmark submodule
+├── bindings/python/         # Python bindings (PyO3)
+├── examples/                # Sample .hn programs
+├── build/                   # Build output (gitignored)
+└── .github/workflows/       # CI/CD (build, test, release, project-board)
 ```
-
-### Key Files
-
-- `compiler-core/compiler/lexer/token.h` - Token type definitions (enum TokenType)
-- `compiler-core/compiler/lexer/lexer.c` - Lexical analyzer implementation
-- `compiler-core/compiler/parser/parser.c` - Parser implementation (dispatch core)
-- `compiler-core/compiler/parser/parse_decl.c` - Declaration parsers
-- `compiler-core/compiler/parser/parse_stmt.c` - Statement parsers
-- `compiler-core/compiler/parser/parse_expr.c` - Expression parsers
-- `compiler-core/compiler/ast/ast.h` - AST node definitions
-- `compiler-core/compiler/interpreter/interpreter.c` - Lifecycle + state helpers
-- `compiler-core/compiler/interpreter/eval.c` - Expression evaluation
-- `compiler-core/compiler/interpreter/exec.c` - Statement execution
-- `compiler-core/compiler/interpreter/call.c` - Function call dispatch
 
 ### Data Flow
 
 ```
-Source Code (.hn)
-    │
-    ▼
-Lexer (tokenizer)
-    │ tokens
-    ▼
-Parser (AST builder)
-    │ AST nodes
-    ▼
-Interpreter (lifecycle/interpreter.c)
-    ├── eval.c   → expression evaluation (interpreter_evaluate)
-    ├── exec.c   → statement execution (interpreter_execute_statement)
-    └── call.c   → function call dispatch (interpreter_call_user_fn)
-    │
-    ▼
-Output
+Source (.hn) → Lexer (tokens) → Parser (AST) → Interpreter (tree-walk) → Output
+                                                         ↕
+                                              Bytecode Compiler → VM (stack)
+                                                         ↕
+                                              Rust Compiler Frontend → LLVM IR
 ```
+
+### Key Source Files
+
+| File | Purpose |
+|------|---------|
+| `compiler/lexer/token.h` | Token type enum |
+| `compiler/lexer/lexer.c` | Lexical analyzer |
+| `compiler/parser/parser.c` | Recursive-descent parser |
+| `compiler/ast/ast.h` | AST node definitions |
+| `compiler/interpreter/interpreter.c` | Tree-walk interpreter (eval + exec) |
+| `compiler/interpreter/builtins.c/h` | Shared builtin functions |
+| `compiler/vm/opcodes.h` | Bytecode instruction set |
+| `compiler/vm/compiler.c` | AST → bytecode compiler |
+| `compiler/vm/vm.c` | Stack-based VM executor |
+| `compiler-rust/src/codegen.rs` | LLVM IR codegen |
+| `cli/main.c` | Entry point + CLI dispatch |
 
 ---
 
-## Adding New Features
+## Code Style
 
-### Adding New Tokens
+**C:** 4-space indent, 100-char lines, snake_case, `stdint.h` types, `const`-qualified, NULL-initialized pointers, error return codes. Group includes: project → stdlib → system.
 
-1. Add `TOKEN_NEW_TOKEN` to `compiler-core/compiler/lexer/token.h` enum
-2. Add keyword in `compiler-core/compiler/lexer/lexer.c` `keyword_names` array
-3. Add corresponding type in `keyword_types` array
-4. Update `lexer_check_keyword()` if needed
+**Python:** PEP 8, type hints, dataclasses for structured data.
 
-### Adding New AST Nodes
+**Hunnu:** `let`/`let mut` for variables, `fn` for functions.
 
-1. Add `AST_NEW_NODE` to `compiler-core/compiler/ast/ast.h` enum
-2. Create struct in `ast.h` for the node
-3. Implement creation/destruction functions in `ast.c`
-4. Update parser to build the node
-5. Update interpreter to execute the node
+### Naming
 
-### Adding Keywords
+| Type | Convention | Example |
+|------|-----------|---------|
+| Variables/functions/files | snake_case | `current_token`, `parse_expression`, `lexer.c` |
+| Types/Structs | PascalCase | `Lexer`, `BenchmarkConfig` |
+| Constants/enums/macros | UPPER_SNAKE_CASE | `MAX_TOKEN_LENGTH`, `TOKEN_LET`, `#define MAX_DEPTH 100` |
 
-Keywords are handled in `lexer.c`:
-- Add keyword string to `keyword_names` array
-- Add corresponding `TokenType` to `keyword_types` array
+---
+
+## Adding Features
+
+1. **Token** → add to `token.h` enum + `lexer.c` keyword arrays
+2. **AST node** → add to `ast.h` enum + struct, implement in `ast.c`/`ast_free.c`, handle in parser + interpreter
+3. **Keyword** → add string + type to `lexer.c` arrays
+4. **Builtin** → add C impl in `builtins.c`, register in `interpreter.c`
+
+**Always add corresponding tests** in `compiler-core/tests/`.
 
 ---
 
 ## Testing
 
-### Automated Testing
-
 ```bash
-# Run all tests via ctest
-cd build && make && ctest
-
-# Run just the C unit tests
-./build/tests/hunnu_tests
-
-# Run integration tests on example files
-./run_tests.sh
-
-# Run specific test via ctest
-cd build && ctest -R hunnu_c_unit_tests
+cd build && make && ctest                                   # all tests
+./compiler-core/tests/hunnu_tests                            # C unit tests only
+ctest -R hunnu_c_unit_tests                                  # specific suite
 ```
 
-### C Unit Tests (50 tests in tests/)
+| Suite | File | Tests | Coverage |
+|-------|------|-------|----------|
+| Value | `test_value.c` | 12 | create/free/copy, type checks |
+| Scope | `test_scope.c` | 6 | define/lookup/nested/shadowing |
+| Lexer | `test_lexer.c` | 10 | int/float/string/keywords/operators |
+| Parser | `test_parser.c` | 11 | decls/expressions/statements/errors |
+| Interpreter | `test_interpreter.c` | 11 | arithmetic/fn calls/loops/scopes |
 
-The C unit test framework uses [minunit](https://github.com/siu/minunit), a minimal header-only test framework.
+---
 
-| Suite | File | Tests | What it covers |
-|-------|------|-------|----------------|
-| Value | `tests/test_value.c` | 12 | create/free/copy values, type checks |
-| Scope | `tests/test_scope.c` | 6 | define/lookup/nested/shadowing |
-| Lexer | `tests/test_lexer.c` | 10 | tokens: int/float/string/keywords/operators |
-| Parser | `tests/test_parser.c` | 11 | AST nodes: decls/expressions/statements/errors |
-| Interpreter | `tests/test_interpreter.c` | 11 | runtime: arithmetic/fn calls/loops/scopes |
+## Language Reference
 
-**When adding features, add tests to the corresponding test suite file.**
-
-### Test Program Example
-
+### Variables, Control Flow, Functions
 ```hunnu
-fn main() {
-    let x = 10
-
-    if x > 5 {
-        print("Hello from Hunnu!")
-    }
-
-    let sum = 5 + 3
-    print(sum)
-}
+let mut x = 10; x = x + 1                       # mutable variable
+fn add(a, b) { return a + b }                    # function
+if x > 5 { print("big") } else if x > 0 { ... }
+while x > 0 { x = x - 1 }
+for i in 0..10 { print(i) }
+let arr = [1, 2, 3]; arr[0] = 99                 # array + index assign
 ```
 
----
-
-## IDE Recommendations
-
-- Use VS Code or Cursor
-- Install C/C++ extension for syntax highlighting
-- Use `.vscode/c_cpp_properties.json` for include paths:
-
-```json
-{
-    "configurations": [
-        {
-            "includePath": [
-                "${workspaceFolder}/**",
-                "${workspaceFolder}/compiler"
-            ]
-        }
-    ]
-}
-```
-
----
-
-## Common Issues
-
-### Build Failures
-
-If build fails, clean and rebuild:
-```bash
-rm -rf build/*
-cd build && cmake .. && make
-```
-
-### Segmentation Faults
-
-- Use a debugger: `gdb ./build/hunnu`
-- Check for uninitialized pointers
-- Verify NULL checks before dereferencing
-
----
-
-## Project Structure
-
-### Current (Month 6 - v1.0 Release)
-
-```
-hunnu-lang/
-├── compiler-core/     # Compiler submodule (https://github.com/hunnu-labs/hunnu-compiler)
-│   ├── compiler/     # C interpreter + bytecode VM
-│   │   ├── ast/      # Abstract syntax tree definitions
-│   │   ├── interpreter/ # Runtime execution (C tree-walk)
-│   │   │   ├── builtins.c/h  # Shared builtin implementations
-│   │   │   ├── interpreter.c # Lifecycle + state helpers
-│   │   │   ├── eval.c        # Expression evaluation (refactor artifact, not compiled)
-│   │   │   ├── exec.c        # Statement execution (refactor artifact, not compiled)
-│   │   │   └── call.c        # Function call dispatch (refactor artifact, not compiled)
-│   │   ├── lexer/    # Tokenization (lexer.c, token.h)
-│   │   ├── parser/   # Syntax analysis
-│   │   │   ├── parser.c      # Main parser
-│   │   │   ├── parse_decl.c  # Declaration parsers (refactor artifact, not compiled)
-│   │   │   ├── parse_stmt.c  # Statement parsers (refactor artifact, not compiled)
-│   │   │   └── parse_expr.c  # Expression parsers (refactor artifact, not compiled)
-│   │   └── transpile/ # C transpiler backend (AOT via gcc)
-│   ├── compiler-rust/ # Rust compiler frontend
-│   │   ├── src/
-│   │   │   ├── lib.rs, lexer.rs, parser.rs, ast.rs, codegen.rs
-│   │   └── Cargo.toml
-│   ├── vm-rust/       # Rust VM
-│   ├── cli/           # Command-line interface (incl. package manager)
-│   └── tests/         # C unit tests (50 tests)
-├── stdlib/            # Standard library modules (all v1 complete)
-├── self/              # Self-hosting compiler (Hunnu in Hunnu)
-│   ├── token.hn       # Token definitions
-│   └── lexer.hn       # Lexer implementation
-├── benchmarks/        # hunnu-benchmark submodule
-├── bindings/
-│   └── python/       # Python bindings (PyO3)
-├── examples/         # Sample .hn programs
-├── build/            # Build output (gitignored)
-├── .github/workflows/ # CI/CD pipelines (build, test, release)
-└── CMakeLists.txt   # Build configuration
-```
-
-## Notes for Agents
-
-- Always build and test after changes
-- Keep changes small and focused
-- Update examples to demonstrate new features
-- Update this file when project setup changes
-- **Language rule: Do NOT use Chinese characters in code, comments, or documentation**
-
-## Language Rule
-
-**Agents must NOT write Chinese characters (中文) anywhere in the codebase including:**
-- Source code (C, Rust, Python, etc.)
-- Comments and documentation
-- Commit messages
-- Markdown files (README.md, AGENTS.md, plan.md, etc.)
-- Test files and scripts
-
-**All code, comments, and documentation must be written in English only.**
-
----
-
-## Hunnu OOP Language Reference
-
-### Structs with methods
+### OOP (Classes, Traits, Inheritance)
 ```hunnu
-type Point = { x, y }
-fn Point.new(x_val, y_val) {
-    return Point(x: x_val, y: y_val)
-}
-fn Point.length(self) {
-    return self.x * self.x + self.y * self.y
-}
-```
-
-### Classes with constructor
-```hunnu
-class Point {
-    pub x: int
-    pub y: int
+class Point { pub x, pub y
     fn new(self, x, y) { self.x = x; self.y = y }
     fn length(self) { return self.x * self.x + self.y * self.y }
 }
-let p = new Point(3, 4)
-print(p.length())
+class Circle : Point { pub r                     # inheritance
+    fn area(self) { return 3 * self.r * self.r }
+}
+trait Shape { fn describe(self) }
+impl Shape for Circle { fn describe(self) { print("Circle") } }
+let p = new Point(3, 4); print(p.length())
 ```
 
-### Inheritance (`class Child : Parent`)
+### Type declarations
 ```hunnu
-class Dog : Animal {
-    pub breed: str
-    fn new(self, name, breed) { self.name = name; self.breed = breed }
-    fn speak(self) { print("Woof!") }
-}
-```
-
-### Traits and Impls
-```hunnu
-trait Area {
-    fn area(self)
-    fn describe(self)
-}
-impl Area for Circle {
-    fn area(self) { return 3 * self.radius * self.radius }
-    fn describe(self) { print("Circle") }
-}
+type Point = { x, y }
+fn Point.new(x, y) { return Point(x: x, y: y) }
 ```
 
 ### AOT Compilation
-Classes must be at top-level for AOT mode:
 ```bash
 hunnu compile file.hn -o output
 ```
+
+---
+
+## Agent Guidelines
+
+- Build and test after every change (`make && ctest`)
+- Keep changes small and focused; update AGENTS.md when project setup changes
+- Run `ruff check .` for Python, `clang-format` for C
+- **No Chinese characters anywhere** — code, comments, docs, commit messages (English only)
