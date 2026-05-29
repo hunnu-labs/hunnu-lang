@@ -22,7 +22,7 @@ jobs:
 
       - name: Set Status to In Progress when labeled
         if: github.event_name == 'issues' && github.event.action == 'labeled'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           github-token: ${{ secrets.HUNNU_PROJECT_TOKEN }}
           script: |
@@ -47,7 +47,7 @@ jobs:
 
       - name: Set Status to Done when closed
         if: github.event_name == 'issues' && github.event.action == 'closed'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           github-token: ${{ secrets.HUNNU_PROJECT_TOKEN }}
           script: |
@@ -72,7 +72,7 @@ jobs:
 
       - name: Set Area based on label
         if: github.event_name == 'issues' && github.event.action == 'labeled'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           github-token: ${{ secrets.HUNNU_PROJECT_TOKEN }}
           script: |
