@@ -4,6 +4,13 @@ project(hunnu_lang VERSION 1.0.0 LANGUAGES C)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
+# Default to an optimized build when the user hasn't picked one.
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+    set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
+    set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS
+        Debug Release RelWithDebInfo MinSizeRel)
+endif()
+
 option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
 option(BUILD_RUST_VM "Build Rust VM component" ON)
 option(BUILD_RUST_COMPILER "Build Rust compiler frontend" ON)
@@ -83,7 +90,10 @@ else()
     add_executable(hunnu ${HUNNU_SOURCES} ${CMAKE_SOURCE_DIR}/vm_stub.c)
 endif()
 
-target_compile_options(hunnu PRIVATE -Wall -Wextra -pedantic)
+target_compile_options(hunnu PRIVATE -Wall -Wextra -pedantic
+    $<$<CONFIG:Release>:-O2>
+    $<$<CONFIG:RelWithDebInfo>:-O2>
+    $<$<CONFIG:MinSizeRel>:-Os>)
 
 # Install the C binary
 install(TARGETS hunnu DESTINATION bin)
