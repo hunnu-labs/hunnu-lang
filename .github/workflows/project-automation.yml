@@ -14,7 +14,7 @@ jobs:
   manage-project:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/add-to-project@v1
+      - uses: actions/add-to-project@v2
         id: add
         with:
           project-url: https://github.com/orgs/hunnu-labs/projects/1
