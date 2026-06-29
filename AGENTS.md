@@ -31,10 +31,11 @@ cd build && make && ctest                                     # test
 hunnu-lang/
 ├── compiler-core/          # Compiler submodule
 │   ├── compiler/           # C interpreter + bytecode VM
-│   │   ├── ast/            # AST definitions (ast.h, ast.c, ast_free.c, ast_print.c)
+│   │   ├── ast/            # AST definitions (ast.h, ast.c)
 │   │   ├── interpreter/    # Runtime: interpreter.c, builtins.c/h
-│   │   ├── lexer/          # Tokenization (lexer.c, token.h/c)
+│   │   ├── lexer/          # Tokenization (lexer.c, token.h)
 │   │   ├── parser/         # Parser (parser.c)
+│   │   ├── runtime/        # Shared runtime: value.c/h, scope.c/h, import.c/h, version.c/h
 │   │   └── vm/             # Bytecode VM (compiler.c, vm.c, opcodes.h)
 │   ├── compiler-rust/      # Rust AOT frontend (src/{lexer,parser,ast,codegen}.rs)
 │   ├── vm-rust/            # Rust VM

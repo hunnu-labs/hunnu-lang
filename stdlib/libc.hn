@@ -1,4 +1,4 @@
-// libc.hn - Standard C library FFI bindings for Hunnu
+// std/libc.hn - Standard C library FFI bindings for Hunnu
 // This module provides pre-built FFI bindings to common libc functions
 
 // Output functions
@@ -24,4 +24,4 @@ extern fn putchar(c) -> int from "libc.so.6"
 
 // Math functions (from libm)
 extern fn abs(x) -> int from "libc.so.6"
-extern fn pow(base, exp) -> int from "libm.so.6"
+extern fn pow(base, exp) -> float from "libm.so.6"

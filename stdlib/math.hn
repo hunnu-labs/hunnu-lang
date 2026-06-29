@@ -1,4 +1,4 @@
-// std.math - Math standard library for Hunnu
+// std/math.hn - Math functions for Hunnu
 // Provides common mathematical functions via FFI
 
 // Power function
