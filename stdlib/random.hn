@@ -1,0 +1,33 @@
+// std/random.hn - Random number generation for Hunnu
+// Uses FFI to C standard library
+
+// Seed the random number generator
+extern fn srand(seed) -> void from "libc.so.6"
+
+// Get a random integer between 0 and RAND_MAX (2147483647)
+extern fn rand() -> int from "libc.so.6"
+
+// Seed the generator manually
+fn seed(seed) {
+    srand(seed)
+}
+
+// Random integer in [0, max)
+fn rand_int(max) {
+    return rand() % max
+}
+
+// Random integer in [min, max]
+fn rand_range(min, max) {
+    return min + (rand() % (max - min + 1))
+}
+
+// Random float in [0.0, 1.0)
+fn rand_float() {
+    return to_float(rand()) / 2147483647.0
+}
+
+// Random boolean
+fn rand_bool() {
+    return rand() % 2 == 1
+}

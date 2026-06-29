@@ -12,8 +12,8 @@ fn now() {
     return time(0)
 }
 
-// Simple timestamp string
+// Formatted date-time string (YYYY-MM-DD HH:MM:SS)
 fn timestamp() {
     let t = time(0)
-    return to_str(t)
+    return __hn_time_format(t)
 }

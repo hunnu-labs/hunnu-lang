@@ -1,10 +1,5 @@
 // std/string.hn - String utility functions for Hunnu
 
-// Get string length
-fn length(s) {
-    return len(s)
-}
-
 // Convert to uppercase
 fn to_upper(s) {
     return __hn_str_to_upper(s)

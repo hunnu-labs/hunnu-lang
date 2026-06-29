@@ -18,6 +18,7 @@ option(BUILD_RUST_COMPILER "Build Rust compiler frontend" ON)
 include_directories(${CMAKE_SOURCE_DIR})
 include_directories(${CMAKE_SOURCE_DIR}/compiler-core)
 include_directories(${CMAKE_SOURCE_DIR}/compiler-core/compiler)
+include_directories(${CMAKE_SOURCE_DIR}/compiler-core/compiler/runtime)
 include_directories(${CMAKE_SOURCE_DIR}/compiler-core/vm-rust/include)
 include_directories(${CMAKE_SOURCE_DIR}/compiler-core/compiler-rust/include)
 
@@ -26,18 +27,15 @@ set(HUNNU_SOURCES
     compiler-core/cli/main.c
     compiler-core/cli/cli.c
     compiler-core/compiler/lexer/lexer.c
-    compiler-core/compiler/lexer/token.c
     compiler-core/compiler/parser/parser.c
     compiler-core/compiler/ast/ast.c
-    compiler-core/compiler/ast/ast_free.c
-    compiler-core/compiler/ast/ast_print.c
     compiler-core/compiler/interpreter/interpreter.c
     compiler-core/compiler/interpreter/builtins.c
-    compiler-core/compiler/value.c
-    compiler-core/compiler/scope.c
-    compiler-core/compiler/import.c
+    compiler-core/compiler/runtime/value.c
+    compiler-core/compiler/runtime/scope.c
+    compiler-core/compiler/runtime/import.c
     compiler-core/compiler/i18n/i18n.c
-    compiler-core/compiler/version.c
+    compiler-core/compiler/runtime/version.c
     compiler-core/compiler/vm/compiler.c
     compiler-core/compiler/vm/vm.c
     compiler-core/compiler/transpile/transpile.c

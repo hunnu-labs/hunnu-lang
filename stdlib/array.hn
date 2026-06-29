@@ -1,9 +1,5 @@
 // std/array.hn - Array utility functions for Hunnu
 
-fn length(arr) {
-    return len(arr)
-}
-
 fn map(arr, f) {
     let mut result = []
     let mut i = 0

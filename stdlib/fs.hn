@@ -2,13 +2,16 @@
 
 // Check if file exists
 fn exists(path) {
-    let content = __hn_fs_read_file(path)
-    return content != ""
+    return __hn_fs_exists(path)
 }
 
-// Read entire file content
+// Read entire file content (returns nil on failure)
 fn read_file(path) {
-    return __hn_fs_read_file(path)
+    let content = __hn_fs_read_file(path)
+    if is_none(content) {
+        return nil
+    }
+    return content
 }
 
 // Write content to file
