@@ -4,8 +4,9 @@ Version 1.0.0 (Erdene)
 
 Hunnu is a lightweight, expression-oriented programming language with C-level performance.
 It supports functional, object-oriented, and procedural programming paradigms with
-a clean, readable syntax. The language features a tree-walk interpreter (C) and an
-AOT compiler (C transpiler + gcc, with an experimental Rust/LLVM frontend).
+a clean, readable syntax. The language features a tree-walk interpreter (C), a
+bytecode VM (C and Rust), an AOT compiler (C transpiler + gcc), and a Rust/LLVM
+codegen backend.
 
 ## Table of Contents
 
@@ -672,13 +673,14 @@ HUNNU_LANG=mn ./build/hunnu hello.hn
 }
 ```
 
-### Rust Compiler Support
+### LLVM Codegen
 
-The Rust frontend (`compiler-core/compiler-rust/`) also recognizes Mongolian keywords via the
-same bilingual lexer approach. Build with:
+The Rust frontend (`compiler-core/compiler-rust/`) compiles Hunnu to native code via
+LLVM IR. It recognizes Mongolian keywords via the same bilingual lexer approach.
+Build with:
 
 ```bash
-cd compiler-core/compiler-rust && cargo build
+cd compiler-core/compiler-rust && cargo build --features llvm-codegen
 ```
 
 ---
@@ -692,8 +694,9 @@ Compile Hunnu source to a standalone native binary:
 ./hello
 ```
 
-The AOT backend transpiles Hunnu to C and compiles with gcc, producing
-optimized native executables with no runtime dependency.
+Two AOT backends are available:
+- **C transpiler** (default) — transpiles Hunnu to C and compiles with gcc, producing optimized native executables with no runtime dependency
+- **LLVM codegen** — compiles via the Rust/LLVM frontend (`compiler-rust`) for native code generation
 
 ---
 
@@ -711,8 +714,12 @@ make
 
 | Command | Description |
 |---------|-------------|
-| `hunnu run <file>` | Run a Hunnu program |
+| `hunnu run <file>` | Run with tree-walk interpreter |
+| `hunnu run <file> --vm` | Run with C bytecode VM |
+| `hunnu run <file> --vm-rust` | Run with Rust bytecode VM |
+| `hunnu run <file> --debug` | Debug mode (show tokens + AST) |
 | `hunnu <file>` | Run (shorthand) |
+| `hunnu build <file>` | Compile to bytecode |
 | `hunnu tokens <file>` | Show token stream |
 | `hunnu ast <file>` | Show AST |
 | `hunnu compile <file> -o <output>` | AOT compile to native binary |
