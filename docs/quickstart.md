@@ -95,6 +95,10 @@ fn main() {
     for let j = 0; j < 3; j = j + 1 {
         print(j)
     }
+
+    for i in 0..3 {
+        print(i)
+    }
 }
 ```
 
@@ -266,3 +270,4 @@ Compile to a native binary:
 - Read the full [Language Specification](language-spec.md)
 - Explore examples in the `examples/` directory
 - Check the standard library in `stdlib/`
+- View the [Development Roadmap](../ROADMAP.md)

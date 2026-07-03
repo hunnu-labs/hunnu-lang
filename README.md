@@ -186,28 +186,7 @@ Named after authentic Mongolian women (`compiler-core/compiler/version.h`):
 
 ## Roadmap
 
-### Completed (v1.0.0 Эрдэнэ)
-- Core language (variables, functions, control flow, arrays, structs, pointers)
-- OOP (classes, inheritance, traits/impl, encapsulation, `self`)
-- Pattern matching (match with literals, wildcards, identifiers)
-- Error handling (try/catch)
-- Enums/ADTs and generics
-- Unsafe blocks
-- Standard library (math, I/O, array, string, fs, time)
-- FFI ecosystem (extern functions, C library bindings)
-- Bytecode compiler + VM (C and Rust)
-- AOT compiler frontend (Rust/LLVM skeleton)
-- i18n (Mongolian keywords, `--lang mn`, localized errors)
-- Package manager (`hunnu install`, `hunnu new`)
-- Self-hosting (Hunnu lexer in Hunnu)
-- CI/CD pipeline, benchmark suite
-
-### Next Steps
-- Complete LLVM codegen in compiler-rust ([#89](https://github.com/hunnu-labs/hunnu-lang/issues/89))
-- Functional features (immutability by default, closures, pipes)
-- Type system enhancements (generics, type inference)
-- Language server protocol (LSP)
-- Expanded standard library (regex, http, json)
+See [ROADMAP.md](ROADMAP.md) for the full development roadmap — completed features, short-term goals, medium/long-term plans, and timeline.
 
 ## Community
 

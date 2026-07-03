@@ -29,7 +29,7 @@ By participating, you agree to uphold the [Code of Conduct](CODE_OF_CONDUCT.md).
 4. Write or update tests as needed
 5. Build and test locally
 6. Run linting if applicable: `./hunnu-lint.sh`
-7. Submit a pull request against the `master` branch
+7. Submit a pull request against the `development` branch
 
 #### PR Checklist
 
@@ -216,16 +216,9 @@ View all [open issues](https://github.com/hunnu-labs/hunnu-lang/issues) and the 
 
 Look for issues labeled `good first issue` or `help wanted` — these are specifically scoped for new contributors.
 
-### Feature Planning
+### Roadmap
 
-Major features are tracked on the [project board](https://github.com/orgs/hunnu-labs/projects/1). Current development focus:
-
-- **AOT Compiler**: Complete LLVM codegen in compiler-rust (#89)
-- **Self-hosting**: Complete the Hunnu-in-Hunnu compiler (#94)
-- **Package registry**: Registry server for package distribution (#95)
-- **Tooling**: LSP server, formatter, debugger, VS Code extension (#96, #97, #102, #103)
-- **Stdlib expansion**: regex, json, http, random modules (#99)
-- **Language features**: Closures, pipelines, type inference (#100, #101)
+See [ROADMAP.md](ROADMAP.md) for the full development plan — completed features, short-term, medium-term, and long-term goals with timeline.
 
 ## Questions?
 
