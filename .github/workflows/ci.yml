@@ -46,7 +46,7 @@ jobs:
           submodules: recursive
 
       - name: Install Rust toolchain
-        uses: actions-rust-lang/setup-rust-toolchain@v1
+        uses: actions-rust-lang/setup-rust-toolchain@v2
 
       - name: Build Rust compiler
         run: cd compiler-core/compiler-rust && cargo build
